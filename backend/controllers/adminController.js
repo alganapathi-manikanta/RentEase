@@ -1,8 +1,20 @@
 import mongoose from 'mongoose';
 import Property from '../models/Property.js';
 import User from '../models/User.js';
+import { normalizeMediaUrl } from '../utils/media.js';
 
 const invalidId = (id) => !mongoose.Types.ObjectId.isValid(id);
+
+const normalizePhotosList = (photos) => {
+  if (!Array.isArray(photos)) return [];
+  return photos
+    .map((photo) => {
+      if (typeof photo === 'string') return normalizeMediaUrl(photo);
+      if (photo && typeof photo === 'object' && typeof photo.url === 'string') return normalizeMediaUrl(photo.url);
+      return '';
+    })
+    .filter(Boolean);
+};
 
 export const getAdminStats = async (req, res) => {
   try {
@@ -76,6 +88,11 @@ export const getAdminProperties = async (req, res) => {
         ...doc,
         id: doc._id,
         isActive: doc.isActive !== false && doc.listingStatus !== 'inactive',
+        photos: normalizePhotosList(doc.photos),
+        floorPlan: doc.floorPlan ? {
+          ...(typeof doc.floorPlan === 'object' ? doc.floorPlan : {}),
+          url: normalizeMediaUrl(typeof doc.floorPlan === 'string' ? doc.floorPlan : doc.floorPlan.url),
+        } : null,
         ownerName: (ownerUser && ownerUser.name) || doc.ownerName || '',
         ownerPhone: (ownerUser && ownerUser.phone) || doc.ownerPhone || '',
         landlord: ownerUser

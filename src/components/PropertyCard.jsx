@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FiMapPin, FiHeart } from 'react-icons/fi';
@@ -22,6 +23,7 @@ export default function PropertyCard({ property, index = 0 }) {
   const stats = computePropertyStats(property);
   const isLand = isPlotOrLandType(property.type || property.propertyType);
   const pricing = getPropertyPricing(property);
+  const [imgError, setImgError] = useState(false);
 
   return (
     <motion.div
@@ -51,10 +53,11 @@ export default function PropertyCard({ property, index = 0 }) {
     >
       <div>
         <div className="relative overflow-hidden">
-          {coverPhoto ? (
+          {coverPhoto && !imgError ? (
             <img
               src={coverPhoto}
               alt={property.title}
+              onError={() => setImgError(true)}
               className="h-48 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]"
             />
           ) : (

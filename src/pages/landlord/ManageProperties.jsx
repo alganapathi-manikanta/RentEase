@@ -48,7 +48,7 @@ export default function ManageProperties() {
                   <tr key={p.id}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        {p.photos?.[0] ? <img src={resolveMediaUrl(p.photos[0])} alt="" className="h-12 w-16 rounded-lg object-cover" /> : <div className="h-12 w-16 rounded-lg bg-primary/10" />}
+                        {p.photos?.[0] ? <img src={resolveMediaUrl(p.photos[0])} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} className="h-12 w-16 rounded-lg object-cover" /> : <div className="h-12 w-16 rounded-lg bg-primary/10" />}
                         <div><p className="font-medium">{p.title}</p>
                       <p className="text-xs text-ink/50 dark:text-slate-400">{p.area}, {p.city}</p>
                         </div>

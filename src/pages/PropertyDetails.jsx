@@ -188,10 +188,18 @@ export default function PropertyDetails() {
     });
   }, [property]);
 
+  const [failedImages, setFailedImages] = useState(new Set());
+  const [floorPlanError, setFloorPlanError] = useState(false);
+
+  const handleImageError = (url) => {
+    setFailedImages((prev) => new Set(prev).add(url));
+  };
+
   // Display photos for gallery: property photos, or fallback to room photos
-  const displayPhotos = propertyPhotos.length > 0
+  const rawDisplayPhotos = propertyPhotos.length > 0
     ? propertyPhotos
     : allRoomPhotos.map((item) => item.url);
+  const displayPhotos = rawDisplayPhotos.filter((p) => !failedImages.has(p));
 
   if (!property) {
     return (
@@ -254,6 +262,7 @@ export default function PropertyDetails() {
                 <img
                   src={mainPhoto}
                   alt={property.title}
+                  onError={() => handleImageError(mainPhoto)}
                   className="h-72 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 md:h-96"
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
@@ -286,6 +295,7 @@ export default function PropertyDetails() {
                       <img
                         src={photo}
                         alt={`${property.title} thumbnail ${index + 1}`}
+                        onError={() => handleImageError(photo)}
                         className="h-16 w-full object-cover md:h-20"
                       />
                     </motion.button>
@@ -765,12 +775,19 @@ export default function PropertyDetails() {
                   onClick={() => openLightbox(resolveMediaUrl(property.floorPlan.url), `${property.title} — 2D Floor Plan`, [resolveMediaUrl(property.floorPlan.url)], 0)}
                   className="group relative max-h-[550px] w-full cursor-pointer overflow-hidden rounded-12 bg-slate-50 dark:bg-slate-900/70 p-2 flex items-center justify-center"
                 >
-                  <img
-                    src={resolveMediaUrl(property.floorPlan.url)}
-                    alt={`${property.title} Floor Plan`}
-                    className="max-h-[500px] w-auto max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
-                    loading="lazy"
-                  />
+                  {!floorPlanError ? (
+                    <img
+                      src={resolveMediaUrl(property.floorPlan.url)}
+                      alt={`${property.title} Floor Plan`}
+                      onError={() => setFloorPlanError(true)}
+                      className="max-h-[500px] w-auto max-w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-[1.02]"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="py-12 text-center text-sm text-slate-500">
+                      Floor plan preview currently unavailable.
+                    </div>
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/25 opacity-0 transition-opacity duration-200 group-hover:opacity-100 rounded-12">
                     <span className="flex items-center gap-2 rounded-full bg-black/80 px-4 py-2 text-xs font-semibold text-white backdrop-blur-sm shadow-lg">
                       <FiMaximize2 size={15} /> Click to Expand & Zoom

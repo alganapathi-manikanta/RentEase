@@ -959,6 +959,9 @@ export default function AdminDashboard() {
                           key={i}
                           src={resolveMediaUrl(photo)}
                           alt={`Photo ${i + 1}`}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
                           className="h-20 w-28 shrink-0 rounded-lg object-cover border border-ink/10 dark:border-white/10"
                         />
                       ))}

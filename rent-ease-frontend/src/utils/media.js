@@ -21,7 +21,10 @@ export function resolveMediaUrl(url) {
   }
 
   const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return `${API_ORIGIN}${cleanPath}`;
+  if (cleanPath.startsWith('/uploads/')) {
+    return `${API_ORIGIN}${cleanPath}`;
+  }
+  return cleanPath;
 }
 
 export function getRoomIcon(name = '', type = '') {

@@ -20,9 +20,41 @@ backend/data/
 /data/
 **/data/db/
 
-# Uploaded runtime media
+# Uploaded runtime media (baseline property media whitelisted for deployment)
 backend/uploads/*
 !backend/uploads/.gitkeep
+!backend/uploads/1791475154436-662631313.jpg
+!backend/uploads/1791475733534-916283738.png
+!backend/uploads/1791475281442-384820329.jpg
+!backend/uploads/1791475325018-470230544.jpg
+!backend/uploads/1791475353711-15177619.jpg
+!backend/uploads/1791475380806-353242294.jpg
+!backend/uploads/1791475409447-851433575.jpg
+!backend/uploads/1791475443346-512498737.jpg
+!backend/uploads/1791106327423-855947057.jpg
+!backend/uploads/1791106506030-625078593.jpg
+!backend/uploads/1791106406369-377259613.jpg
+!backend/uploads/1791106434663-658277997.jpg
+!backend/uploads/1791106458825-370233368.jpg
+!backend/uploads/1791106492026-713856608.jpg
+!backend/uploads/1790942940414-840969541.png
+!backend/uploads/1790866503873-565517004.png
+!backend/uploads/1790868080590-130040151.png
+!backend/uploads/1790866640803-542023950.png
+!backend/uploads/1790866744550-386009456.png
+!backend/uploads/1790866783960-778963841.png
+!backend/uploads/1790866828556-570490744.png
+!backend/uploads/1790866891403-500190119.png
+!backend/uploads/1790866924161-106989626.jpg
+!backend/uploads/1790866969609-884750423.png
+!backend/uploads/1790949110203-407925183.png
+!backend/uploads/1790867065548-98305687.png
+!backend/uploads/1790510427113-287527550.png
+!backend/uploads/1790510518034-708721022.png
+!backend/uploads/1790510562385-190431094.png
+!backend/uploads/1790510602672-144483165.png
+!backend/uploads/1790510631950-358569063.png
+!backend/uploads/1790510661081-285474922.png
 uploads/*
 !uploads/.gitkeep
 
