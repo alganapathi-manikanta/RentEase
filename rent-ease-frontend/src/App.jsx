@@ -9,6 +9,7 @@ import DashboardLayout from './components/DashboardLayout';
 import PageTransition from './components/PageTransition';
 import { InfoModalProvider } from './context/InfoModalContext';
 import InfoModalOverlay from './components/InfoModalOverlay';
+import WebsiteIntro from './components/WebsiteIntro';
 
 import Landing from './pages/Landing';
 import Features from './pages/Features';
@@ -80,6 +81,7 @@ export default function App() {
     <InfoModalProvider>
       <ScrollToTop />
       <InfoModalOverlay />
+      <WebsiteIntro />
       <Routes>
       {/* Public routes */}
       <Route path="/" element={<PublicLayout><Landing /></PublicLayout>} />
