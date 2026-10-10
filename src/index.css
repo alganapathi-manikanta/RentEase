@@ -148,6 +148,157 @@ header .navbar-theme-toggle:focus-visible { outline-color: #d4a84f; outline-offs
   background: #d4a84f !important;
 }
 
+/* ============================================================
+   RENT EASE — PREMIUM ORGANIC LIQUID BUTTON SYSTEM
+   Sapphire Blue + Champagne Gold Liquid Glass Aesthetic
+   ============================================================ */
+
+/* 1. Base Liquid Button Container */
+.liquid-btn-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  isolation: isolate;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* 2. Variant Glow & Shadows */
+.liquid-svg-sapphire {
+  filter: drop-shadow(0 4px 14px rgba(7, 21, 43, 0.7));
+  transition: filter 300ms ease;
+}
+
+.liquid-btn-wrapper:hover .liquid-svg-sapphire {
+  filter: drop-shadow(0 6px 20px rgba(118, 215, 245, 0.5)) drop-shadow(0 0 14px rgba(70, 120, 200, 0.4));
+}
+
+.liquid-svg-gold {
+  filter: drop-shadow(0 4px 14px rgba(7, 21, 43, 0.7));
+  transition: filter 300ms ease;
+}
+
+.liquid-btn-wrapper:hover .liquid-svg-gold {
+  filter: drop-shadow(0 6px 20px rgba(221, 187, 114, 0.55)) drop-shadow(0 0 14px rgba(118, 215, 245, 0.3));
+}
+
+/* 3. Ambient Fluid Glow Breathing */
+@keyframes liquid-breathe {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.liquid-ambient-path {
+  animation: liquid-breathe 4.5s ease-in-out infinite alternate;
+}
+
+/* 4. Fluid Droplet Floating Motion */
+@keyframes liquid-droplet-float-left {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-1.5px, -1px);
+  }
+}
+
+@keyframes liquid-droplet-float-right {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(1.5px, 1px);
+  }
+}
+
+.liquid-droplets-left {
+  animation: liquid-droplet-float-left 3.8s ease-in-out infinite alternate;
+}
+
+.liquid-droplets-right {
+  animation: liquid-droplet-float-right 4.2s ease-in-out infinite alternate;
+}
+
+/* 5. Specular Meniscus Highlight Pulse */
+@keyframes liquid-meniscus-glow {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 3px #FFFFFF);
+  }
+}
+
+.liquid-meniscus-path {
+  animation: liquid-meniscus-glow 3.2s ease-in-out infinite alternate;
+}
+
+/* 6. Glossy Specular Surface Sweep on Hover */
+.liquid-hover-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.35) 45%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.35) 55%,
+    transparent 75%
+  );
+  opacity: 0;
+  transform: translateX(-100%);
+  pointer-events: none;
+  transition: opacity 250ms ease;
+  z-index: 5;
+}
+
+.liquid-btn-wrapper:hover .liquid-hover-shimmer {
+  opacity: 0.75;
+  animation: liquid-shimmer-sweep 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes liquid-shimmer-sweep {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+/* Backward compatibility classes */
+.btn-navbar-login {
+  @apply liquid-btn-wrapper;
+}
+.btn-navbar-get-started {
+  @apply liquid-btn-wrapper;
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-ambient-path,
+  .liquid-hover-shimmer,
+  .liquid-droplets-left,
+  .liquid-droplets-right,
+  .liquid-meniscus-path {
+    animation: none !important;
+    transition: none !important;
+  }
+  .liquid-btn-wrapper {
+    transition: none !important;
+  }
+}
+
 .btn-premium {
   @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold;
   background: linear-gradient(135deg, var(--color-accent), #b88d39);
