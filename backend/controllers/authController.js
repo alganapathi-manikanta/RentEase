@@ -16,6 +16,7 @@ const publicUser = (user) => ({
   about: user.about,
   profileImage: user.profileImage,
   role: user.role,
+  preferences: user.preferences,
   createdAt: user.createdAt,
 });
 

@@ -98,8 +98,10 @@ export function AuthProvider({ children }) {
   const updateProfile = async (updates) => {
     if (API_ENABLED) {
       const { data } = await api.put('/users/profile', updates);
-      persist({ ...user, ...data });
-      return data;
+      const updatedUser = { ...user, ...(data.user || data) };
+      if (!updatedUser.id && updatedUser._id) updatedUser.id = updatedUser._id;
+      persist(updatedUser);
+      return updatedUser;
     }
     const users = JSON.parse(localStorage.getItem('rentease_users') || '[]');
     const idx = users.findIndex((u) => u.id === user.id);
@@ -107,6 +109,7 @@ export function AuthProvider({ children }) {
       users[idx] = { ...users[idx], ...updates };
       localStorage.setItem('rentease_users', JSON.stringify(users));
       persist(users[idx]);
+      return users[idx];
     }
   };
 

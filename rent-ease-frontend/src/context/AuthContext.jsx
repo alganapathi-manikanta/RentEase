@@ -80,9 +80,13 @@ export function AuthProvider({ children }) {
       email: formData.email,
       phone: formData.phone,
       address: formData.address || '',
+      city: formData.city || '',
+      state: formData.state || '',
+      country: formData.country || '',
+      about: formData.about || '',
+      profileImage: formData.profileImage || '',
       password: formData.password,
       role: formData.role,
-      profileImage: '',
       createdAt: new Date().toISOString(),
     };
     users.push(newUser);
@@ -94,8 +98,10 @@ export function AuthProvider({ children }) {
   const updateProfile = async (updates) => {
     if (API_ENABLED) {
       const { data } = await api.put('/users/profile', updates);
-      persist({ ...user, ...data });
-      return data;
+      const updatedUser = { ...user, ...(data.user || data) };
+      if (!updatedUser.id && updatedUser._id) updatedUser.id = updatedUser._id;
+      persist(updatedUser);
+      return updatedUser;
     }
     const users = JSON.parse(localStorage.getItem('rentease_users') || '[]');
     const idx = users.findIndex((u) => u.id === user.id);
@@ -103,6 +109,7 @@ export function AuthProvider({ children }) {
       users[idx] = { ...users[idx], ...updates };
       localStorage.setItem('rentease_users', JSON.stringify(users));
       persist(users[idx]);
+      return users[idx];
     }
   };
 
@@ -112,7 +119,7 @@ export function AuthProvider({ children }) {
       return;
     }
     if (user.password !== currentPassword) throw new Error('Current password is incorrect.');
-    updateProfile({ password: newPassword });
+    await updateProfile({ password: newPassword });
   };
 
   const logout = () => {

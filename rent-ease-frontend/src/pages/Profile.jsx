@@ -57,8 +57,10 @@ export default function Profile() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <h1 className="font-display text-2xl font-bold">Landlord Profile</h1>
-      <p className="mt-1 mb-6 text-sm text-ink/60 dark:text-slate-400">View and manage the details tenants see about you.</p>
+      <h1 className="font-display text-2xl font-bold">{user?.role === 'landlord' ? 'Landlord Profile' : 'Tenant Profile'}</h1>
+      <p className="mt-1 mb-6 text-sm text-ink/60 dark:text-slate-400">
+        {user?.role === 'landlord' ? 'View and manage the details tenants see about you.' : 'View and manage your tenant account details.'}
+      </p>
       {message && <p className="mb-4 rounded-lg bg-secondary/10 px-4 py-2.5 text-sm text-secondary dark:text-slate-200">{message}</p>}
       {error && <p className="mb-4 rounded-lg bg-red-500/10 px-4 py-2.5 text-sm text-red-700 dark:text-red-300">{error}</p>}
 

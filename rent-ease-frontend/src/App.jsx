@@ -37,10 +37,13 @@ import ManageProperties from './pages/landlord/ManageProperties';
 import Reports from './pages/landlord/Reports';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
+import { useAuth } from './context/AuthContext';
+
 const tenantLinks = [
   { to: '/tenant/wishlist', label: 'Wishlist', icon: FiHeart },
   { to: '/search', label: 'Search Properties', icon: FiSearch },
   { to: '/tenant/profile', label: 'Profile', icon: FiUser },
+  { to: '/tenant/settings', label: 'Settings', icon: FiSettings },
 ];
 
 const landlordLinks = [
@@ -74,6 +77,14 @@ function ScrollToTop() {
   }, [pathname]);
 
   return null;
+}
+
+function SettingsRedirect() {
+  const { user } = useAuth();
+  if (user?.role === 'landlord') return <Navigate to="/landlord/settings" replace />;
+  if (user?.role === 'tenant') return <Navigate to="/tenant/settings" replace />;
+  if (user?.role === 'admin') return <Navigate to="/admin" replace />;
+  return <Navigate to="/login" replace />;
 }
 
 export default function App() {
@@ -168,6 +179,16 @@ export default function App() {
         element={
           <ProtectedRoute role="admin">
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* General Settings Redirect */}
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <SettingsRedirect />
           </ProtectedRoute>
         }
       />

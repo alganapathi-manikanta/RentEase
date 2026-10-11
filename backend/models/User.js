@@ -43,6 +43,16 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    preferences: {
+      type: Object,
+      default: () => ({
+        propertyUpdates: true,
+        inquiries: true,
+        wishlistAlerts: true,
+        accountSecurity: true,
+        marketingUpdates: false,
+      }),
+    },
     resetPasswordTokenHash: {
       type: String,
       select: false,
