@@ -16,77 +16,174 @@ const getResponseList = (response) => {
 
 const mergeStoredProperties = (storedProperties) => {
   if (!Array.isArray(storedProperties)) return [...seedProperties];
-
   const customProperties = storedProperties.filter((property) => !isSeedProperty(property.id));
   return [...seedProperties, ...customProperties];
 };
 
+const CACHE_KEY = 'rentease_cached_properties_v1';
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+const getInitialCachedProperties = () => {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      if (Array.isArray(data) && data.length > 0 && Date.now() - timestamp < CACHE_TTL_MS * 5) {
+        return data;
+      }
+    }
+  } catch (_) {}
+  return [];
+};
+
 export function AppDataProvider({ children }) {
   const { user } = useAuth();
-  const [properties, setProperties] = useState([]);
+  const initialCache = useRef(getInitialCachedProperties());
+  const [properties, setProperties] = useState(() => (initialCache.current.length > 0 ? initialCache.current : []));
+  const [propertiesLoading, setPropertiesLoading] = useState(() => initialCache.current.length === 0);
+  const [propertiesError, setPropertiesError] = useState('');
+  const [isWakingServer, setIsWakingServer] = useState(false);
+
   const [favorites, setFavorites] = useState([]); // array of propertyIds
   const [favoritesError, setFavoritesError] = useState('');
   const [expenses, setExpenses] = useState({}); // { [propertyId]: {...} }
   const pendingFavorites = useRef(new Set());
 
+  const inFlightRequest = useRef(null);
+  const lastFetchTime = useRef(initialCache.current.length > 0 ? Date.now() : 0);
+  const wakingTimerRef = useRef(null);
+
+  // --- Fetch Public & Landlord Properties ---
+  const fetchProperties = useCallback(async (force = false) => {
+    if (!API_ENABLED) {
+      const storedProps = localStorage.getItem('rentease_properties');
+      const parsedProps = storedProps ? JSON.parse(storedProps) : [];
+      const safeProps = mergeStoredProperties(parsedProps);
+      setProperties(safeProps);
+      setPropertiesLoading(false);
+      setPropertiesError('');
+      return safeProps;
+    }
+
+    // Reuse existing in-flight request if already loading
+    if (inFlightRequest.current) {
+      return inFlightRequest.current;
+    }
+
+    // Skip redundant fetch if cache is fresh and not forced
+    if (!force && properties.length > 0 && Date.now() - lastFetchTime.current < CACHE_TTL_MS) {
+      setPropertiesLoading(false);
+      return properties;
+    }
+
+    if (properties.length === 0) {
+      setPropertiesLoading(true);
+    }
+    setPropertiesError('');
+
+    // Timer to detect cold-start latency (e.g. Render waking from inactivity)
+    if (wakingTimerRef.current) clearTimeout(wakingTimerRef.current);
+    wakingTimerRef.current = setTimeout(() => {
+      setIsWakingServer(true);
+    }, 3200);
+
+    const requestPromise = (async () => {
+      try {
+        const publicReq = api.get('/properties');
+        const landlordReq =
+          user?.role === 'landlord'
+            ? api.get('/properties/my').catch(() => null)
+            : Promise.resolve(null);
+
+        const [publicRes, landlordRes] = await Promise.all([publicReq, landlordReq]);
+
+        const publicProps = getResponseList(publicRes);
+        const landlordProps = landlordRes ? getResponseList(landlordRes) : [];
+        const combined = [...publicProps, ...landlordProps];
+        const unique = [
+          ...new Map(combined.map((property) => [property._id || property.id, normalizeProperty(property)])).values(),
+        ];
+
+        setProperties(unique);
+        lastFetchTime.current = Date.now();
+        setPropertiesError('');
+
+        // Cache in sessionStorage for fast back/forward navigation and reloads
+        try {
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: unique, timestamp: Date.now() }));
+        } catch (_) {}
+
+        return unique;
+      } catch (err) {
+        console.error('Failed to load properties:', err);
+        const isNetworkOrTimeout =
+          err.response?.status === 503 ||
+          err.code === 'ECONNABORTED' ||
+          err.message?.toLowerCase().includes('network') ||
+          err.message?.toLowerCase().includes('timeout');
+
+        const errMsg = isNetworkOrTimeout
+          ? 'Cloud server is waking up. Please retry in a few moments.'
+          : 'Unable to load properties right now. Please check your connection and retry.';
+
+        setPropertiesError(errMsg);
+        // Fallback to existing properties or seed properties so user is never stranded
+        setProperties((current) => (current.length > 0 ? current : seedProperties));
+        return [];
+      } finally {
+        if (wakingTimerRef.current) clearTimeout(wakingTimerRef.current);
+        setIsWakingServer(false);
+        setPropertiesLoading(false);
+        inFlightRequest.current = null;
+      }
+    })();
+
+    inFlightRequest.current = requestPromise;
+    return requestPromise;
+  }, [user?.role, properties.length]);
+
+  // Initial load on mount
   useEffect(() => {
-    if (API_ENABLED) {
-      const loadData = async () => {
-        const propertyRequest = Promise.all([
-          api.get('/properties'),
-          user?.role === 'landlord' ? api.get('/properties/my') : Promise.resolve(null),
-        ]).then((responses) => ({ responses })).catch((error) => ({ error }));
-        const wishlistRequest = user?.role === 'tenant'
-          ? api.get('/wishlist').then(({ data }) => ({ data })).catch((error) => ({ error }))
-          : Promise.resolve(null);
-        const [propertyResult, wishlistResult] = await Promise.all([propertyRequest, wishlistRequest]);
+    fetchProperties(false);
+  }, [fetchProperties]);
 
-        if (propertyResult.error) {
-          console.error('Failed to load properties:', propertyResult.error);
-          setProperties([]);
-        } else {
-          const [publicResponse, ownedResponse] = propertyResult.responses;
-          const publicProperties = getResponseList(publicResponse);
-          const ownedProperties = user?.role === 'landlord'
-            ? getResponseList(ownedResponse)
-            : [];
-          const combined = [...publicProperties, ...ownedProperties];
-          const unique = [...new Map(combined.map((property) => [property._id || property.id, normalizeProperty(property)])).values()];
-          setProperties(unique);
-        }
-
-        if (user?.role === 'tenant') {
-          if (wishlistResult.error) {
-            console.error('Failed to load wishlist:', wishlistResult.error);
-            setFavoritesError('Your wishlist could not be loaded. Please try again.');
-          } else {
-            setFavorites(getResponseList(wishlistResult.data).map((property) => String(property._id || property.id)));
-            setFavoritesError('');
-          }
-        } else {
-          setFavorites([]);
-          setFavoritesError('');
-        }
-      };
-      loadData();
+  // Load tenant wishlist separately
+  useEffect(() => {
+    if (!API_ENABLED) {
+      if (user?.role !== 'tenant') {
+        setFavorites([]);
+        setFavoritesError('');
+        return;
+      }
+      const favoriteKey = `rentease_favorites_${user?.id || user?._id || 'tenant'}`;
+      const storedFavs = localStorage.getItem(favoriteKey);
+      setFavorites(storedFavs ? JSON.parse(storedFavs) : []);
+      setFavoritesError('');
       return;
     }
-    const storedProps = localStorage.getItem('rentease_properties');
-    const parsedProps = storedProps ? JSON.parse(storedProps) : [];
-    const safeProps = mergeStoredProperties(parsedProps);
-    setProperties(safeProps);
 
-    if (user?.role !== 'tenant') {
+    if (user?.role === 'tenant') {
+      api
+        .get('/wishlist')
+        .then(({ data }) => {
+          setFavorites(getResponseList(data).map((property) => String(property._id || property.id)));
+          setFavoritesError('');
+        })
+        .catch((error) => {
+          console.error('Failed to load wishlist:', error);
+          setFavoritesError('Your wishlist could not be loaded. Please try again.');
+        });
+    } else {
       setFavorites([]);
+      setFavoritesError('');
     }
-    const favoriteKey = `rentease_favorites_${user?.id || user?._id || 'tenant'}`;
-    const storedFavs = user?.role === 'tenant' ? localStorage.getItem(favoriteKey) : null;
-    setFavorites(storedFavs ? JSON.parse(storedFavs) : []);
-    setFavoritesError('');
+  }, [user?.role, user?.id, user?._id]);
 
+  // Load offline expenses
+  useEffect(() => {
     const storedExpenses = localStorage.getItem('rentease_expenses');
     setExpenses(storedExpenses ? JSON.parse(storedExpenses) : {});
-  }, [user]);
+  }, []);
 
   const persistProperties = (next) => {
     const merged = mergeStoredProperties(next);
@@ -94,11 +191,21 @@ export function AppDataProvider({ children }) {
     localStorage.setItem('rentease_properties', JSON.stringify(merged));
   };
 
+  const updateSessionCache = (updatedProperties) => {
+    try {
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: updatedProperties, timestamp: Date.now() }));
+    } catch (_) {}
+  };
+
   const addProperty = async (property, ownerId, ownerName, ownerPhone) => {
     if (API_ENABLED) {
       const { data } = await api.post('/properties', property);
       const created = normalizeProperty(data.property || data.data);
-      setProperties((current) => [created, ...current]);
+      setProperties((current) => {
+        const next = [created, ...current];
+        updateSessionCache(next);
+        return next;
+      });
       return created;
     }
     const newProperty = {
@@ -122,7 +229,11 @@ export function AppDataProvider({ children }) {
     if (API_ENABLED) {
       const { data } = await api.put(`/properties/${id}`, updates);
       const updated = normalizeProperty(data.property || data.data);
-      setProperties((current) => current.map((property) => property.id === id ? updated : property));
+      setProperties((current) => {
+        const next = current.map((p) => (p.id === id || p._id === id ? updated : p));
+        updateSessionCache(next);
+        return next;
+      });
       return updated;
     }
     if (isSeedProperty(id)) return;
@@ -133,7 +244,11 @@ export function AppDataProvider({ children }) {
   const deleteProperty = async (id) => {
     if (API_ENABLED) {
       await api.delete(`/properties/${id}`);
-      setProperties((current) => current.filter((property) => property.id !== id));
+      setProperties((current) => {
+        const next = current.filter((p) => p.id !== id && p._id !== id);
+        updateSessionCache(next);
+        return next;
+      });
       return;
     }
     if (isSeedProperty(id)) return;
@@ -149,84 +264,70 @@ export function AppDataProvider({ children }) {
 
   const togglePropertyPublished = async (id) => {
     if (API_ENABLED) {
-      const property = properties.find((item) => item.id === id);
+      const property = properties.find((item) => item.id === id || item._id === id);
       if (!property) return;
       await updateProperty(id, { isPublished: property.isPublished === false });
       return;
     }
     if (isSeedProperty(id)) return;
     const currentUserId = JSON.parse(localStorage.getItem('rentease_user') || 'null')?.id;
-    persistProperties(properties.map((p) => (
-      p.id === id && p.ownerId === currentUserId ? { ...p, isPublished: p.isPublished === false } : p
-    )));
+    persistProperties(
+      properties.map((p) => (p.id === id && p.ownerId === currentUserId ? { ...p, isPublished: p.isPublished === false } : p))
+    );
   };
 
-  const incrementViews = useCallback(async (id) => {
-    if (!id) return;
-    if (isSeedProperty(id)) {
-      setProperties((current) =>
-        current.map((p) => (p.id === id || p._id === id ? { ...p, views: (p.views || 0) + 1 } : p))
-      );
-      return;
-    }
+  const incrementViews = async (id) => {
     if (API_ENABLED) {
       try {
-        const { data } = await api.post(`/properties/${id}/view`);
-        const updatedViews = data.views ?? data.data?.views;
-        if (typeof updatedViews === 'number') {
-          setProperties((current) =>
-            current.map((property) =>
-              (property.id === id || property._id === id)
-                ? { ...property, views: updatedViews }
-                : property
-            )
-          );
-        }
-      } catch (err) {
-        console.error('Failed to increment property views:', err);
+        await api.post(`/properties/${id}/view`);
+      } catch (e) {
+        console.warn('Failed to register view increment:', e.message);
       }
       return;
     }
-    setProperties((current) => {
-      const next = current.map((p) => (p.id === id || p._id === id ? { ...p, views: (p.views || 0) + 1 } : p));
-      try {
-        localStorage.setItem('rentease_properties', JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, []);
+    const current = properties.find((item) => item.id === id);
+    if (!current) return;
+    updateProperty(id, { views: (current.views || 0) + 1 });
+  };
 
-  const toggleFavorite = async (id) => {
-    if (user?.role !== 'tenant' || !id) return;
-    const propertyId = String(id);
-    if (pendingFavorites.current.has(propertyId)) return;
+  const toggleFavorite = async (propertyId) => {
+    const stringId = String(propertyId);
+    if (!stringId) return;
 
-    const saved = favorites.includes(propertyId);
-    const next = saved
-      ? favorites.filter((favoriteId) => favoriteId !== propertyId)
-      : [...favorites, propertyId];
-    setFavorites(next);
+    if (pendingFavorites.current.has(stringId)) return;
+    pendingFavorites.current.add(stringId);
+
+    const isFav = favorites.includes(stringId);
+    const nextFavorites = isFav
+      ? favorites.filter((id) => id !== stringId)
+      : [...favorites, stringId];
+
+    // Optimistic UI update
+    setFavorites(nextFavorites);
     setFavoritesError('');
 
-    if (!API_ENABLED) {
-      const favoriteKey = `rentease_favorites_${user.id || user._id || 'tenant'}`;
-      localStorage.setItem(favoriteKey, JSON.stringify(next));
+    if (API_ENABLED) {
+      try {
+        if (isFav) {
+          await api.delete(`/wishlist/${stringId}`);
+        } else {
+          await api.post(`/wishlist/${stringId}`);
+        }
+      } catch (err) {
+        console.error('Failed to sync favorite with backend:', err);
+        // Rollback optimistic state
+        setFavorites(favorites);
+        setFavoritesError('Could not update wishlist. Please try again.');
+        setTimeout(() => setFavoritesError(''), 4000);
+      } finally {
+        pendingFavorites.current.delete(stringId);
+      }
       return;
     }
 
-    pendingFavorites.current.add(propertyId);
-    try {
-      if (saved) await api.delete(`/wishlist/${propertyId}`);
-      else await api.post(`/wishlist/${propertyId}`);
-    } catch (error) {
-      setFavorites((current) => saved
-        ? [...new Set([...current, propertyId])]
-        : current.filter((favoriteId) => favoriteId !== propertyId));
-      setFavoritesError(error.message || 'Your wishlist could not be updated. Please try again.');
-      console.error('Failed to update wishlist:', error);
-    } finally {
-      pendingFavorites.current.delete(propertyId);
-    }
+    const favoriteKey = `rentease_favorites_${user?.id || user?._id || 'tenant'}`;
+    localStorage.setItem(favoriteKey, JSON.stringify(nextFavorites));
+    pendingFavorites.current.delete(stringId);
   };
 
   const saveExpenses = (propertyId, data) => {
@@ -239,6 +340,10 @@ export function AppDataProvider({ children }) {
     <AppDataContext.Provider
       value={{
         properties,
+        propertiesLoading,
+        propertiesError,
+        isWakingServer,
+        refreshProperties: () => fetchProperties(true),
         favorites,
         favoritesError,
         expenses,

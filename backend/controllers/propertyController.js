@@ -295,9 +295,11 @@ export const getProperties = async (req, res) => {
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
 
     const properties = await Property.find(filter)
+      .select('-canonicalLayout -threeDConfig.canonicalLayout -floorPlan.layout -floorPlan.roomPlacements')
       .populate('ownerId', 'name email phone')
-      .sort({ createdAt: -1 });
-    const normalizedList = properties.map((doc) => normalizeProperty(doc.toObject()));
+      .sort({ createdAt: -1 })
+      .lean();
+    const normalizedList = properties.map((doc) => normalizeProperty(doc));
     res.status(200).json({ success: true, data: normalizedList });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -352,9 +354,11 @@ export const incrementPropertyViews = async (req, res) => {
 export const getMyProperties = async (req, res) => {
   try {
     const properties = await Property.find({ ownerId: req.user._id })
+      .select('-canonicalLayout -threeDConfig.canonicalLayout -floorPlan.layout -floorPlan.roomPlacements')
       .populate('ownerId', 'name email phone')
-      .sort({ createdAt: -1 });
-    const normalizedList = properties.map((doc) => normalizeProperty(doc.toObject()));
+      .sort({ createdAt: -1 })
+      .lean();
+    const normalizedList = properties.map((doc) => normalizeProperty(doc));
     res.status(200).json({ success: true, data: normalizedList });
   } catch (error) {
     res.status(500).json({ message: error.message });

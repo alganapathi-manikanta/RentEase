@@ -30,6 +30,8 @@ import { useAuth } from '../context/AuthContext';
 import { resolveMediaUrl, getRoomIcon, computePropertyStats } from '../utils/media';
 import { isPlotOrLandType } from '../utils/propertyFormHelpers';
 import { getPropertyPricing, getPropertyUtilities, formatCurrency, formatPrice } from '../utils/propertyPricing';
+import { LUXURY_EASE } from '../utils/motionVariants';
+import api from '../utils/api';
 
 function formatPhoneNumber(phone) {
   if (!phone) return '';
@@ -48,9 +50,46 @@ function formatPhoneNumber(phone) {
 export default function PropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { properties, favorites, toggleFavorite, incrementViews } = useAppData();
+  const { properties, propertiesLoading, isWakingServer, favorites, toggleFavorite, incrementViews } = useAppData();
   const { user } = useAuth();
-  const property = properties.find((p) => String(p.id) === String(id) || String(p._id) === String(id));
+
+  const [directProperty, setDirectProperty] = useState(null);
+  const [directLoading, setDirectLoading] = useState(false);
+  const [fetchFailed, setFetchFailed] = useState(false);
+
+  const propertyFromList = properties.find((p) => String(p.id) === String(id) || String(p._id) === String(id));
+  const property = propertyFromList || directProperty;
+
+  // Direct fetch fallback if property not found in cached list
+  useEffect(() => {
+    if (propertyFromList || directProperty || fetchFailed || !id) return;
+    if (propertiesLoading) return;
+
+    let active = true;
+    setDirectLoading(true);
+    api.get(`/properties/${id}`)
+      .then((res) => {
+        if (active) {
+          const fetched = res.data?.data || res.data?.property || res.data;
+          if (fetched) {
+            setDirectProperty(fetched);
+          } else {
+            setFetchFailed(true);
+          }
+        }
+      })
+      .catch(() => {
+        if (active) setFetchFailed(true);
+      })
+      .finally(() => {
+        if (active) setDirectLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id, propertyFromList, directProperty, propertiesLoading, fetchFailed]);
+
   const landlordName = property?.landlord?.name || property?.ownerId?.name || property?.ownerName || 'Property Owner';
   const rawLandlordPhone = property?.landlord?.phone || property?.ownerId?.phone || property?.ownerPhone || '';
   const displayLandlordPhone = formatPhoneNumber(rawLandlordPhone);
@@ -201,10 +240,60 @@ export default function PropertyDetails() {
     : allRoomPhotos.map((item) => item.url);
   const displayPhotos = rawDisplayPhotos.filter((p) => !failedImages.has(p));
 
+  if (!property && (propertiesLoading || directLoading)) {
+    return (
+      <div className="section py-8 animate-pulse">
+        <div className="mb-4 h-9 w-24 rounded-lg bg-surface-200 dark:bg-surface-800" />
+
+        {isWakingServer && (
+          <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center text-sm text-amber-700 dark:text-amber-300">
+            <span className="font-semibold">Rent Ease Cloud Server is waking up...</span> Please allow a few seconds for property details to load.
+          </div>
+        )}
+
+        <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+          <div className="space-y-6">
+            <div className="aspect-[16/10] w-full rounded-2xl bg-surface-200 dark:bg-surface-800" />
+            <div className="flex gap-3">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-20 w-24 rounded-xl bg-surface-200 dark:bg-surface-800" />
+              ))}
+            </div>
+            <div className="rounded-2xl border border-surface-200 dark:border-surface-800 p-6 space-y-4">
+              <div className="h-6 w-40 rounded bg-surface-200 dark:bg-surface-800" />
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-16 rounded-xl bg-surface-100 dark:bg-surface-800/60" />
+                ))}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-surface-200 dark:border-surface-800 p-6 space-y-3">
+              <div className="h-6 w-32 rounded bg-surface-200 dark:bg-surface-800" />
+              <div className="h-4 w-full rounded bg-surface-100 dark:bg-surface-800/60" />
+              <div className="h-4 w-5/6 rounded bg-surface-100 dark:bg-surface-800/60" />
+              <div className="h-4 w-2/3 rounded bg-surface-100 dark:bg-surface-800/60" />
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-surface-200 dark:border-surface-800 p-6 space-y-5">
+              <div className="h-8 w-32 rounded bg-surface-200 dark:bg-surface-800" />
+              <div className="h-7 w-3/4 rounded bg-surface-200 dark:bg-surface-800" />
+              <div className="h-4 w-1/2 rounded bg-surface-100 dark:bg-surface-800/60" />
+              <div className="h-24 rounded-xl bg-surface-100 dark:bg-surface-800/60" />
+              <div className="h-12 w-full rounded-xl bg-surface-200 dark:bg-surface-800" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!property) {
     return (
       <div className="section flex min-h-[60vh] flex-col items-center justify-center gap-4 py-16 text-center">
         <h2 className="font-display text-2xl font-bold">Property not found</h2>
+        <p className="text-sm text-surface-500">The property you are looking for may have been removed or is temporarily unavailable.</p>
         <Link to="/search" className="btn-primary">Back to Search</Link>
       </div>
     );
@@ -253,7 +342,7 @@ export default function PropertyDetails() {
             <motion.div
               initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.985 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.45, ease: LUXURY_EASE }}
             >
               <div
                 onClick={() => openLightbox(mainPhoto, property.title, displayPhotos, activePhotoIdx)}
@@ -321,7 +410,7 @@ export default function PropertyDetails() {
           <motion.div
             initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.1, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.1, ease: LUXURY_EASE }}
             className="mt-8 flex flex-wrap items-start justify-between gap-4"
           >
             <div>
@@ -375,7 +464,7 @@ export default function PropertyDetails() {
           <motion.div
             initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.18, ease: LUXURY_EASE }}
             className="card mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4 p-4 sm:p-6 border border-slate-200 dark:border-slate-800"
           >
             {specs.map((s) => (
@@ -392,7 +481,7 @@ export default function PropertyDetails() {
             <motion.div
               initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.25, ease: LUXURY_EASE }}
               className="card mt-6 p-5 border border-slate-200 dark:border-slate-800"
             >
               <h3 className="mb-4 font-display text-base font-bold text-slate-900 dark:text-white">
@@ -502,7 +591,7 @@ export default function PropertyDetails() {
           <motion.div
             initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.2, ease: LUXURY_EASE }}
             className="card space-y-3 p-6"
           >
             {isOwner && (
@@ -592,9 +681,10 @@ export default function PropertyDetails() {
               const displayName = isBedroom2 ? 'Bedroom 2' : (rawName.toLowerCase() === 'living room' || rawName.toLowerCase() === 'living' ? 'Living Room' : (rawName || 'Room'));
 
               return (
-                <div
+                <motion.div
                   key={room.id || idx}
-                  className="card flex flex-col justify-between overflow-hidden p-5 sm:p-6 transition hover:border-primary/40 shadow-sm border border-slate-200 dark:border-slate-800"
+                  whileHover={{ y: -3, transition: { duration: 0.25, ease: LUXURY_EASE } }}
+                  className="card flex flex-col justify-between overflow-hidden p-5 sm:p-6 transition hover:border-primary/40 hover:shadow-md shadow-sm border border-slate-200 dark:border-slate-800"
                 >
                   <div>
                     {/* Room Header & Details */}
@@ -696,7 +786,7 @@ export default function PropertyDetails() {
                       </div>
                     ) : null}
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -818,7 +908,7 @@ export default function PropertyDetails() {
           id="property-3d-section"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.35, ease: LUXURY_EASE }}
           className="mt-12 scroll-mt-28 w-full"
         >
           <div className="mb-3 flex items-center justify-between">
@@ -944,7 +1034,7 @@ export default function PropertyDetails() {
               initial={{ scale: 0.92, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 10 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.28, ease: LUXURY_EASE }}
               className="relative max-h-[85vh] max-w-[92vw]"
               onClick={(e) => e.stopPropagation()}
             >

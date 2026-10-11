@@ -9,6 +9,7 @@ import { useAppData } from '../context/AppDataContext';
 import { resolveMediaUrl, computePropertyStats } from '../utils/media';
 import { isPlotOrLandType } from '../utils/propertyFormHelpers';
 import { getPropertyPricing } from '../utils/propertyPricing';
+import { LUXURY_EASE, HEART_SPRING } from '../utils/motionVariants';
 
 export default function PropertyCard({ property, index = 0 }) {
   const { user } = useAuth();
@@ -16,7 +17,8 @@ export default function PropertyCard({ property, index = 0 }) {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const isTenant = user?.role === 'tenant';
-  const isFav = favorites?.includes(String(property.id || property._id));
+  const propId = property.id || property._id;
+  const isFav = favorites?.includes(String(propId));
 
   const rawCover = property.photos?.[0] || property.rooms?.find((r) => r.photos?.length)?.photos?.[0];
   const coverPhoto = resolveMediaUrl(rawCover);
@@ -24,47 +26,63 @@ export default function PropertyCard({ property, index = 0 }) {
   const isLand = isPlotOrLandType(property.type || property.propertyType);
   const pricing = getPropertyPricing(property);
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 100, scale: shouldReduceMotion ? 1 : 0.97 }}
+      initial={{
+        opacity: 0,
+        y: shouldReduceMotion ? 0 : 26,
+        scale: shouldReduceMotion ? 1 : 0.98,
+      }}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      whileHover={shouldReduceMotion ? {} : { y: -7, scale: 1.028 }}
-      whileTap={shouldReduceMotion ? {} : { scale: 0.988 }}
-      viewport={{ once: true, amount: 0.2 }}
+      whileHover={shouldReduceMotion ? {} : { y: -6 }}
+      whileTap={shouldReduceMotion ? {} : { scale: 0.99 }}
+      viewport={{ once: true, amount: 0.15 }}
       transition={{
-        duration: shouldReduceMotion ? 0.2 : 0.7,
-        delay: shouldReduceMotion ? 0 : (index % 3) * 0.13,
-        ease: [0.22, 1, 0.36, 1],
+        duration: shouldReduceMotion ? 0.2 : 0.5,
+        delay: shouldReduceMotion ? 0 : (index % 3) * 0.08,
+        ease: LUXURY_EASE,
       }}
       role="link"
       tabIndex={0}
       aria-label={`View details for ${property.title}`}
       onClick={(event) => {
-        if (!event.target.closest('a, button')) navigate(`/property/${property.id || property._id}`);
+        if (!event.target.closest('a, button')) navigate(`/property/${propId}`);
       }}
       onKeyDown={(event) => {
         if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
           event.preventDefault();
-          navigate(`/property/${property.id || property._id}`);
+          navigate(`/property/${propId}`);
         }
       }}
-      className="card group overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-primary/15 hover:border-primary/40 flex flex-col justify-between"
+      className="card group overflow-hidden transition-shadow duration-300 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 flex flex-col justify-between cursor-pointer"
     >
       <div>
-        <div className="relative overflow-hidden">
+        <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+          {!imgLoaded && !imgError && (
+            <div className="absolute inset-0 bg-slate-200 dark:bg-slate-800 animate-pulse" />
+          )}
           {coverPhoto && !imgError ? (
             <img
               src={coverPhoto}
               alt={property.title}
+              loading={index < 2 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'auto'}
+              decoding="async"
+              width="400"
+              height="250"
+              onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
-              className="h-48 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.07]"
+              className={`h-48 w-full object-cover transition-all duration-500 ease-out group-hover:scale-[1.05] ${
+                imgLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
             />
           ) : (
             <MediaPlaceholder icon="home" label="Image Placeholder" className="h-48 w-full" />
           )}
           <span
-            className={`absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-xs ${pricing.badgeColor}`}
+            className={`absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-xs transition-transform duration-200 group-hover:scale-105 ${pricing.badgeColor}`}
           >
             {pricing.badgeText}
           </span>
@@ -74,26 +92,32 @@ export default function PropertyCard({ property, index = 0 }) {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                toggleFavorite(property.id || property._id);
+                toggleFavorite(propId);
               }}
               aria-label={isFav ? 'Remove from wishlist' : 'Save to wishlist'}
               whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.88 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+              transition={HEART_SPRING}
               className={`absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border shadow-md transition-colors duration-200 ${
                 isFav
                   ? 'bg-rose-500 text-white border-rose-500 shadow-rose-500/40 hover:bg-rose-600'
                   : 'bg-white/95 text-slate-700 border-white/80 hover:text-rose-600 hover:border-rose-300 hover:bg-white dark:bg-slate-900/95 dark:text-slate-100 dark:border-slate-700/80 dark:hover:text-rose-400 dark:hover:border-rose-500/50'
               }`}
             >
-              <FiHeart size={18} className={isFav ? 'fill-current text-white' : 'stroke-[2.2]'} />
+              <motion.span
+                animate={isFav ? { scale: [1, 1.25, 1] } : { scale: 1 }}
+                transition={HEART_SPRING}
+                className="flex items-center justify-center"
+              >
+                <FiHeart size={18} className={isFav ? 'fill-current text-white' : 'stroke-[2.2]'} />
+              </motion.span>
             </motion.button>
           )}
         </div>
 
         <div className="p-5">
           <div className="mb-1 flex items-center justify-between">
-            <h3 className="font-display text-lg font-semibold line-clamp-1 group-hover:text-primary transition-colors">
+            <h3 className="font-display text-lg font-semibold line-clamp-1 group-hover:text-primary transition-colors duration-200">
               {property.title}
             </h3>
           </div>
@@ -122,8 +146,8 @@ export default function PropertyCard({ property, index = 0 }) {
       <div className="px-5 pb-5 pt-0">
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
           <Link
-            to={`/property/${property.id}`}
-            className="btn-outline w-full !py-2.5 text-sm text-center block"
+            to={`/property/${propId}`}
+            className="btn-outline w-full !py-2.5 text-sm text-center block transition-colors"
           >
             View Details
           </Link>

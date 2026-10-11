@@ -7,6 +7,7 @@ import {
 } from 'react-icons/fi';
 import { BiBuildingHouse } from 'react-icons/bi';
 import PropertyCard from '../components/PropertyCard';
+import PropertyCardSkeleton from '../components/PropertyCardSkeleton';
 import LiquidButton from '../components/LiquidButton';
 import { useAppData } from '../context/AppDataContext';
 import { testimonials } from '../data/mockData';
@@ -41,7 +42,7 @@ const STATS = [
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { properties } = useAppData();
+  const { properties, propertiesLoading, propertiesError, isWakingServer, refreshProperties } = useAppData();
   const [city, setCity] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
@@ -264,11 +265,37 @@ export default function Landing() {
           </motion.button>
         </motion.div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {featured.map((p, i) => (
-            <PropertyCard key={p.id || p._id} property={p} index={i} />
-          ))}
-        </div>
+        {/* Server waking indicator for cold-starts */}
+        {isWakingServer && propertiesLoading && (
+          <div className="mb-6 flex items-center justify-center gap-2.5 rounded-2xl border border-[#d4a84f]/30 bg-[#d4a84f]/10 p-3 text-xs font-medium text-[#b98a3c] dark:text-[#ddbb72] animate-pulse">
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <span>Connecting to cloud server... Verified property listings will appear momentarily.</span>
+          </div>
+        )}
+
+        {propertiesLoading && featured.length === 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[...Array(6)].map((_, i) => (
+              <PropertyCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : propertiesError && featured.length === 0 ? (
+          <div className="card p-8 text-center border border-red-500/20 bg-red-50/50 dark:bg-red-950/20">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{propertiesError}</p>
+            <button
+              onClick={() => refreshProperties()}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-primary/90"
+            >
+              Retry Loading
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((p, i) => (
+              <PropertyCard key={p.id || p._id} property={p} index={i} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Stats */}

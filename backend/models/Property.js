@@ -134,6 +134,7 @@ const propertySchema = new mongoose.Schema(
 propertySchema.index({ ownerId: 1, createdAt: -1 });
 propertySchema.index({ city: 1, type: 1, listingType: 1, isPublished: 1 });
 propertySchema.index({ propertyType: 1, transactionType: 1, listingStatus: 1 });
+propertySchema.index({ isPublished: 1, isActive: 1, listingStatus: 1, createdAt: -1 });
 
 const Property = mongoose.model('Property', propertySchema);
 
