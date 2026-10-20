@@ -12,9 +12,11 @@ import favoriteRoutes from './routes/favoriteRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 import { errorHandler, notFound } from './middleware/errorMiddleware.js';
 
 dotenv.config();
+dotenv.config({ path: './backend/.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -102,6 +104,7 @@ app.use('/api/wishlist', requireDatabase, wishlistRoutes);
 app.use('/api/uploads', requireDatabase, uploadRoutes);
 app.use('/api/properties', requireDatabase, propertyRoutes);
 app.use('/api/admin', requireDatabase, adminRoutes);
+app.use('/api/chat', requireDatabase, chatRoutes);
 app.use(notFound);
 app.use(errorHandler);
 

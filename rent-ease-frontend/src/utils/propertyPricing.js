@@ -253,3 +253,173 @@ export function getPropertyUtilities(property) {
     isBoth,
   };
 }
+
+/**
+ * Formats a numeric price into full Indian numbering system format (e.g. ₹10,50,000).
+ */
+export function formatINR(amount) {
+  const num = Number(amount);
+  if (!num || isNaN(num) || num <= 0) return '₹0';
+  return `₹${Math.round(num).toLocaleString('en-IN')}`;
+}
+
+/**
+ * Deterministic Home Loan EMI & Repayment Calculator.
+ * Supports zero-interest edge case (0% interest loans).
+ */
+export function calculateHomeLoanEmi({
+  purchasePrice = 0,
+  downPayment = 0,
+  annualInterestRate = 8.5,
+  tenureYears = 20,
+} = {}) {
+  const price = Math.max(0, Number(purchasePrice) || 0);
+  const dp = Math.max(0, Math.min(price, Number(downPayment) || 0));
+  const principal = Math.max(0, price - dp);
+  const rate = Math.max(0, Math.min(100, Number(annualInterestRate) || 0));
+  const years = Math.max(1, Math.min(50, Number(tenureYears) || 1));
+  const months = Math.round(years * 12);
+
+  if (principal <= 0) {
+    return {
+      purchasePrice: price,
+      downPayment: dp,
+      downPaymentPercent: price > 0 ? Math.round((dp / price) * 100) : 0,
+      principal: 0,
+      annualInterestRate: rate,
+      tenureYears: years,
+      tenureMonths: months,
+      monthlyEmi: 0,
+      totalInterest: 0,
+      totalRepayment: 0,
+      totalCost: dp,
+    };
+  }
+
+  // Zero interest loan edge-case
+  if (rate === 0) {
+    const monthlyEmi = Math.round(principal / months);
+    const totalRepayment = principal;
+    return {
+      purchasePrice: price,
+      downPayment: dp,
+      downPaymentPercent: price > 0 ? Math.round((dp / price) * 100) : 0,
+      principal,
+      annualInterestRate: 0,
+      tenureYears: years,
+      tenureMonths: months,
+      monthlyEmi,
+      totalInterest: 0,
+      totalRepayment,
+      totalCost: dp + totalRepayment,
+    };
+  }
+
+  // Standard EMI formula: E = P * r * (1 + r)^n / ((1 + r)^n - 1)
+  const monthlyRate = rate / (12 * 100);
+  const factor = Math.pow(1 + monthlyRate, months);
+
+  let monthlyEmi = 0;
+  if (!isFinite(factor) || factor <= 1) {
+    monthlyEmi = Math.round(principal / months);
+  } else {
+    monthlyEmi = Math.round((principal * monthlyRate * factor) / (factor - 1));
+  }
+
+  const totalRepayment = monthlyEmi * months;
+  const totalInterest = Math.max(0, totalRepayment - principal);
+  const totalCost = dp + totalRepayment;
+
+  return {
+    purchasePrice: price,
+    downPayment: dp,
+    downPaymentPercent: price > 0 ? Math.round((dp / price) * 100) : 0,
+    principal,
+    annualInterestRate: rate,
+    tenureYears: years,
+    tenureMonths: months,
+    monthlyEmi,
+    totalInterest,
+    totalRepayment,
+    totalCost,
+  };
+}
+
+/**
+ * Rent vs. Buy comparative cash-outflow projection over a user-selected horizon.
+ * Non-predictive model clearly labeled with stated assumptions.
+ */
+export function calculateRentVsBuyProjection({
+  monthlyRent = 0,
+  monthlyUtilities = 0,
+  annualRentHike = 5,
+  purchasePrice = 0,
+  downPayment = 0,
+  annualInterestRate = 8.5,
+  loanTenureYears = 20,
+  monthlyMaintenance = 0,
+  annualMaintenanceHike = 3,
+  comparisonYears = 10,
+} = {}) {
+  const rent = Math.max(0, Number(monthlyRent) || 0);
+  const utils = Math.max(0, Number(monthlyUtilities) || 0);
+  const rentHike = Math.max(0, Math.min(50, Number(annualRentHike) || 0)) / 100;
+
+  const emiData = calculateHomeLoanEmi({
+    purchasePrice,
+    downPayment,
+    annualInterestRate,
+    tenureYears: loanTenureYears,
+  });
+
+  const maint = Math.max(0, Number(monthlyMaintenance) || 0);
+  const maintHike = Math.max(0, Math.min(50, Number(annualMaintenanceHike) || 0)) / 100;
+  const totalYears = Math.max(1, Math.min(50, Math.round(Number(comparisonYears) || 10)));
+  const loanMonths = emiData.tenureMonths;
+
+  const projection = [];
+  let cumulativeRent = 0;
+  let cumulativeBuy = emiData.downPayment; // initial down payment outlay
+
+  for (let y = 1; y <= totalYears; y++) {
+    // Rent side: Rent + utilities with annual rent escalation
+    const yearRentMonthly = rent * Math.pow(1 + rentHike, y - 1);
+    const annualRentTotal = Math.round((yearRentMonthly + utils) * 12);
+    cumulativeRent += annualRentTotal;
+
+    // Buy side: EMI payments for active months in this year
+    const startMonth = (y - 1) * 12 + 1;
+    const endMonth = y * 12;
+    let monthsWithEmi = 0;
+    if (endMonth <= loanMonths) {
+      monthsWithEmi = 12;
+    } else if (startMonth <= loanMonths) {
+      monthsWithEmi = loanMonths - startMonth + 1;
+    } else {
+      monthsWithEmi = 0;
+    }
+
+    const annualEmiTotal = emiData.monthlyEmi * monthsWithEmi;
+    const yearMaintMonthly = maint * Math.pow(1 + maintHike, y - 1);
+    const annualMaintTotal = Math.round(yearMaintMonthly * 12);
+    const annualBuyTotal = annualEmiTotal + annualMaintTotal;
+    cumulativeBuy += annualBuyTotal;
+
+    projection.push({
+      year: y,
+      yearLabel: `Year ${y}`,
+      annualRent: annualRentTotal,
+      cumulativeRent,
+      annualBuy: annualBuyTotal,
+      cumulativeBuy,
+    });
+  }
+
+  return {
+    projection,
+    totalRentOutflow: cumulativeRent,
+    totalBuyOutflow: cumulativeBuy,
+    difference: cumulativeBuy - cumulativeRent,
+    emiData,
+  };
+}

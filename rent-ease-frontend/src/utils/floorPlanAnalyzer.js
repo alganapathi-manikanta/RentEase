@@ -109,11 +109,30 @@ export function getQuadrant(relX, relZ) {
   return `${northSouth}${westEast}` || 'center';
 }
 
+async function getSvgContent(file, previewUrl = '') {
+  if (file && typeof file.text === 'function') {
+    return await file.text();
+  }
+  if (typeof file === 'string') {
+    const trimmed = file.trim();
+    if (trimmed.startsWith('<svg') || trimmed.includes('<svg')) {
+      return trimmed;
+    }
+  }
+  const urlToFetch = previewUrl || (typeof file === 'string' ? file : null) || (file && file.url);
+  if (urlToFetch) {
+    const res = await fetch(urlToFetch);
+    if (!res.ok) throw new Error(`Failed to fetch SVG floor plan: HTTP ${res.status}`);
+    return await res.text();
+  }
+  throw new Error('No readable SVG source provided.');
+}
+
 /**
  * Analyze an SVG floor plan to extract exact labeled room coordinates, aspect ratio, and boundaries.
  */
-async function analyzeSvg(file) {
-  const text = await file.text();
+async function analyzeSvg(file, previewUrl = '') {
+  const text = await getSvgContent(file, previewUrl);
   const parser = new DOMParser();
   const doc = parser.parseFromString(text, 'image/svg+xml');
   const svgEl = doc.querySelector('svg');
@@ -467,11 +486,13 @@ function analyzeImage(imgSrc) {
 export async function analyzeFloorPlanFile(file, previewUrl = '') {
   if (!file) return null;
 
-  const ext = (file.name || '').slice((file.name || '').lastIndexOf('.')).toLowerCase();
+  const fileName = file?.name || previewUrl || (typeof file === 'string' ? file : '') || '';
+  const cleanFileName = fileName.split('?')[0].split('#')[0];
+  const ext = cleanFileName.slice(cleanFileName.lastIndexOf('.')).toLowerCase();
 
   try {
     if (ext === '.svg') {
-      const res = await analyzeSvg(file);
+      const res = await analyzeSvg(file, previewUrl);
       const isSuccess = Array.isArray(res.roomPlacements) && res.roomPlacements.length > 0;
       return {
         ...res,
@@ -481,9 +502,9 @@ export async function analyzeFloorPlanFile(file, previewUrl = '') {
     }
 
     if (['.png', '.jpg', '.jpeg', '.webp'].includes(ext)) {
-      const urlToUse = previewUrl || URL.createObjectURL(file);
+      const urlToUse = previewUrl || (typeof file === 'string' ? file : URL.createObjectURL(file));
       const result = await analyzeImage(urlToUse);
-      if (!previewUrl) {
+      if (!previewUrl && typeof file !== 'string') {
         URL.revokeObjectURL(urlToUse);
       }
       return result;
@@ -495,9 +516,10 @@ export async function analyzeFloorPlanFile(file, previewUrl = '') {
         buildingShape: 'rectangular',
         compartments: [],
         hasStairs: false,
-        status: 'processed',
-        error: '',
-        summary: 'PDF architectural floor plan attached',
+        status: 'unsupported_pdf',
+        isPdf: true,
+        error: 'PDF floor plans cannot be analyzed directly in the browser for automated 3D room extraction.',
+        summary: 'Architectural PDF floor plan attached (direct PDF view available)',
       };
     }
   } catch (err) {

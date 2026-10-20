@@ -11,20 +11,11 @@ export async function sendPasswordResetEmail({ to, name, resetUrl, expiresInMinu
   const user = process.env.EMAIL_USER;
   const pass = process.env.EMAIL_PASSWORD;
   const from = process.env.EMAIL_FROM || '"Rent Ease" <no-reply@rentease.com>';
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const brevoApiKey = process.env.BREVO_API_KEY;
   const isDev = process.env.NODE_ENV !== 'production';
 
-  const isConfigured = Boolean(host && user && pass);
-
-  if (isConfigured) {
-    try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: { user, pass },
-      });
-
-      const textContent = `Hello ${name || 'User'},
+  const textContent = `Hello ${name || 'User'},
 
 You requested to reset your Rent Ease password.
 
@@ -38,7 +29,7 @@ If you did not request this, you can safely ignore this email. Your password wil
 Best regards,
 The Rent Ease Team`;
 
-      const htmlContent = `
+  const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -71,6 +62,128 @@ The Rent Ease Team`;
 </body>
 </html>`;
 
+  const maskEmail = (str) => {
+    if (!str || typeof str !== 'string') return 'unknown';
+    return str.replace(/(.{2})(.*)(@.*)/, '$1***$3');
+  };
+
+  // 1. Resend API delivery if configured
+  if (resendApiKey) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: from.includes('<') ? from : `"Rent Ease" <${from}>`,
+          to: [to],
+          subject: 'Reset your Rent Ease password',
+          html: htmlContent,
+          text: textContent,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        return {
+          success: true,
+          delivered: true,
+          provider: 'resend',
+          messageId: data.id,
+          status: 'accepted',
+        };
+      }
+      const sanitizedError =
+        data?.message ||
+        data?.error?.message ||
+        (typeof data === 'string' ? data : 'Resend API rejected request');
+      console.error(
+        `[EMAIL SERVICE] Resend rejected reset email to ${maskEmail(to)}: [Status ${res.status}] ${sanitizedError}`
+      );
+      return {
+        success: false,
+        delivered: false,
+        provider: 'resend',
+        error: sanitizedError,
+        statusCode: res.status,
+      };
+    } catch (err) {
+      console.error('[EMAIL SERVICE] Resend delivery network exception:', err.message);
+      return {
+        success: false,
+        delivered: false,
+        provider: 'resend',
+        error: err.message,
+      };
+    }
+  }
+
+  // 2. Brevo API delivery if configured
+  if (brevoApiKey) {
+    try {
+      const senderMatch = from.match(/<([^>]+)>/);
+      const senderEmail = senderMatch
+        ? senderMatch[1]
+        : (process.env.EMAIL_FROM_ADDRESS || 'no-reply@rentease.com');
+      const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': brevoApiKey.trim(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sender: { name: 'Rent Ease', email: senderEmail },
+          to: [{ email: to, name: name || 'User' }],
+          subject: 'Reset your Rent Ease password',
+          htmlContent: htmlContent,
+          textContent: textContent,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        return {
+          success: true,
+          delivered: true,
+          provider: 'brevo',
+          messageId: data.messageId,
+          status: 'accepted',
+        };
+      }
+      const sanitizedError =
+        data?.message || data?.code || (typeof data === 'string' ? data : 'Brevo API rejected request');
+      console.error(
+        `[EMAIL SERVICE] Brevo rejected reset email to ${maskEmail(to)}: [Status ${res.status}] ${sanitizedError}`
+      );
+      return {
+        success: false,
+        delivered: false,
+        provider: 'brevo',
+        error: sanitizedError,
+        statusCode: res.status,
+      };
+    } catch (err) {
+      console.error('[EMAIL SERVICE] Brevo delivery network exception:', err.message);
+      return {
+        success: false,
+        delivered: false,
+        provider: 'brevo',
+        error: err.message,
+      };
+    }
+  }
+
+  // 3. SMTP delivery if configured via environment
+  const isSmtpConfigured = Boolean(host && user && pass);
+  if (isSmtpConfigured) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: port === 465,
+        auth: { user, pass },
+      });
+
       const info = await transporter.sendMail({
         from,
         to,
@@ -79,27 +192,45 @@ The Rent Ease Team`;
         html: htmlContent,
       });
 
-      return { success: true, delivered: true, messageId: info.messageId };
+      return {
+        success: true,
+        delivered: true,
+        provider: 'smtp',
+        messageId: info.messageId,
+        status: 'accepted',
+      };
     } catch (err) {
-      console.error('Failed to send reset email via SMTP:', err.message);
-      if (!isDev) {
-        return { success: false, error: 'Email delivery failed' };
-      }
+      console.error(
+        `[EMAIL SERVICE] SMTP delivery failed to ${maskEmail(to)}:`,
+        err.message
+      );
+      return {
+        success: false,
+        delivered: false,
+        provider: 'smtp',
+        error: err.message,
+        code: err.code,
+      };
     }
   }
 
-  // Safe development fallback: log URL to console only in non-production mode
+  // 4. Safe development fallback: log URL to console only in non-production mode
   if (isDev) {
     console.log('\n======================================================================');
     console.log('[DEVELOPMENT ONLY] RENT EASE PASSWORD RESET LINK:');
     console.log(`Recipient:       ${to}`);
     console.log(`Expires in:      ${expiresInMinutes} minutes`);
     console.log(`Reset URL:       ${resetUrl}`);
-    console.log('Notice:          This link was generated locally because SMTP is unconfigured.');
-    console.log('                 In production, valid EMAIL_* environment variables are required.');
+    console.log('Notice:          This link was generated locally because email provider is unconfigured.');
+    console.log('                 In production, configure RESEND_API_KEY, BREVO_API_KEY, or EMAIL_* variables.');
     console.log('======================================================================\n');
-    return { success: true, delivered: false, devResetUrl: resetUrl };
+    return { success: true, delivered: false, provider: 'dev-console', devResetUrl: resetUrl };
   }
 
-  return { success: false, error: 'Email service is not configured in production.' };
+  return {
+    success: false,
+    delivered: false,
+    provider: 'none',
+    error: 'No email delivery provider is configured in production (RESEND_API_KEY, BREVO_API_KEY, or SMTP credentials missing).',
+  };
 }

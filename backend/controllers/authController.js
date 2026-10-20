@@ -216,12 +216,20 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordExpires = expiresAt;
     await user.save();
 
-    // Construct the client reset URL
+    // Construct the client reset URL using configured production frontend origin
+    const isDev = process.env.NODE_ENV !== 'production';
     const configuredFrontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL;
-    if (!configuredFrontendUrl) {
-      throw new Error('FRONTEND_URL or CLIENT_URL must be configured to create password reset links.');
+    let clientBase;
+    if (configuredFrontendUrl) {
+      clientBase = configuredFrontendUrl.replace(/\/$/, '');
+    } else if (req.headers.origin && !req.headers.origin.includes('localhost') && !req.headers.origin.includes('127.0.0.1')) {
+      clientBase = req.headers.origin.replace(/\/$/, '');
+    } else if (isDev) {
+      clientBase = (req.headers.origin || 'http://localhost:5173').replace(/\/$/, '');
+    } else {
+      console.warn('[AUTH WARNING] Neither FRONTEND_URL nor CLIENT_URL is configured in production. Falling back to default production frontend URL.');
+      clientBase = 'https://rent-ease-frontend.vercel.app';
     }
-    const clientBase = configuredFrontendUrl.replace(/\/$/, '');
     const resetUrl = `${clientBase}/reset-password/${rawToken}`;
 
     // Send the password reset email or log development fallback
@@ -232,7 +240,18 @@ export const forgotPassword = async (req, res) => {
       expiresInMinutes: 30,
     });
 
-    const isDev = process.env.NODE_ENV !== 'production';
+    if (emailResult?.delivered) {
+      console.log(
+        `[AUTH] Password reset email accepted by provider "${emailResult.provider}". Message ID: ${emailResult.messageId || 'unknown'}`
+      );
+    } else if (isDev && emailResult?.devResetUrl) {
+      // Handled inside development fallback in emailService
+    } else {
+      console.error(
+        `[AUTH WARNING] Password reset email was NOT delivered via "${emailResult?.provider || 'none'}". Reason: ${emailResult?.error || 'Provider rejected or unconfigured'}`
+      );
+    }
+
     if (isDev && emailResult?.devResetUrl) {
       return res.status(200).json({
         ...genericResponse,
@@ -313,7 +332,7 @@ export const resetPassword = async (req, res) => {
     const newPasswordHash = await bcrypt.hash(password, salt);
 
     user.passwordHash = newPasswordHash;
-    user.password = undefined; // clear legacy field if any
+    user.password = newPasswordHash; // update legacy field for complete parity
     user.resetPasswordTokenHash = undefined; // invalidate single-use token immediately
     user.resetPasswordExpires = undefined;
 

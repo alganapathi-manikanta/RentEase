@@ -5,7 +5,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { matchRoomsToFloorPlan, analyzeFloorPlanFile } from '../utils/floorPlanAnalyzer';
 import { buildCanonicalLayout, validateCanonicalLayout } from '../utils/canonicalLayout';
 import { isPlotOrLandType } from '../utils/propertyFormHelpers';
-import { FiAlertTriangle, FiRefreshCw } from 'react-icons/fi';
+import { FiAlertTriangle, FiRefreshCw, FiFileText, FiExternalLink, FiDownload } from 'react-icons/fi';
+import { resolveMediaUrl } from '../utils/media';
 
 export const ROOM_PALETTES = {
   living: {
@@ -1693,13 +1694,26 @@ export default function Room3D({
   floors = 1,
 }) {
   const mountRef = useRef(null);
+  const [mountNode, setMountNode] = useState(null);
+  const centerRef = useRef({ x: 0, z: 0 });
+  const handleMountRef = useCallback((node) => {
+    mountRef.current = node;
+    setMountNode(node);
+  }, []);
   const controlsRef = useRef(null);
   const labelsRef = useRef([]);
   const [selectedId, setSelectedId] = useState('');
   const [showNames, setShowNames] = useState(true);
   const [isTopDown, setIsTopDown] = useState(false);
 
-  const activeFloorPlan = floorPlan || config?.floorPlan;
+  const rawFloorPlan = floorPlan || config?.floorPlan;
+  const activeFloorPlan = useMemo(() => {
+    if (!rawFloorPlan) return null;
+    return {
+      ...rawFloorPlan,
+      url: resolveMediaUrl(rawFloorPlan.url),
+    };
+  }, [rawFloorPlan]);
   const canonicalCandidate = propCanonicalLayout || activeFloorPlan?.layout || config?.canonicalLayout;
   const rawFurnishing = furnishing || furnished || config?.furnishing || config?.furnished || '';
   const furnishingMode = normalizeFurnishing(rawFurnishing);
@@ -1715,13 +1729,24 @@ export default function Room3D({
       propRooms[0]?.type === 'plot'
     ));
 
+  const isCommercial =
+    (propertyType || type || config?.propertyType || config?.type || '').toLowerCase() === 'commercial' ||
+    Boolean(config?.isCommercial);
+
+  const isPdfPlan = Boolean(
+    activeFloorPlan?.isPdf ||
+    (activeFloorPlan?.url && activeFloorPlan.url.toLowerCase().split('?')[0].endsWith('.pdf')) ||
+    (activeFloorPlan?.name && activeFloorPlan.name.toLowerCase().endsWith('.pdf'))
+  );
+
   const initialStatus = useMemo(() => {
     if (!activeFloorPlan?.url) return 'idle';
+    if (isPdfPlan || activeFloorPlan.isPdf) return 'unsupported_pdf';
     if (activeFloorPlan.status === 'failed' || activeFloorPlan.layout?.status === 'failed') return 'failed';
     if (hasExistingFloorPlanLayout(activeFloorPlan, config, canonicalCandidate)) return 'processed';
     if (activeFloorPlan.status === 'processed') return 'processed';
     return 'analyzing';
-  }, [activeFloorPlan?.url, activeFloorPlan?.status, activeFloorPlan?.layout, config, canonicalCandidate]);
+  }, [activeFloorPlan?.url, activeFloorPlan?.status, activeFloorPlan?.layout, activeFloorPlan?.isPdf, isPdfPlan, config, canonicalCandidate]);
 
   // Async analysis state
   const [asyncLayout, setAsyncLayout] = useState(null);
@@ -1735,7 +1760,7 @@ export default function Room3D({
 
   const triggerAnalysis = useCallback((force = false) => {
     const planUrl = activeFloorPlan?.url;
-    if (!planUrl) return;
+    if (!planUrl || isPdfPlan) return;
 
     if (!force && inFlightRef.current === planUrl) {
       return;
@@ -1835,6 +1860,9 @@ export default function Room3D({
 
   const effectiveLayout = useMemo(() => {
     if (activeFloorPlan?.url) {
+      if (isPdfPlan || analysisStatus === 'unsupported_pdf') {
+        return null;
+      }
       if (analysisStatus === 'failed') {
         return { status: 'failed', error: analysisError || activeFloorPlan.error || 'Floor plan analysis failed' };
       }
@@ -1915,27 +1943,85 @@ export default function Room3D({
       list = sourceRooms;
     } else {
       appliedFallback = true;
-      const add = (type, count, namePrefix) => {
-        const pal = ROOM_PALETTES[type] || ROOM_PALETTES.other;
-        for (let i = 0; i < count; i += 1) {
+      if (isLand) {
+        // PLOT / LAND LISTING: Represent as single dedicated plot boundary with grass
+        const plotAreaSqFt = Number(sqft) || (Number(length) > 0 && Number(width) > 0 ? Number(length) * Number(width) : 1200);
+        let plotL = Number(length) || 0;
+        let plotW = Number(width) || 0;
+        if (!plotL || !plotW) {
+          // Standard real-estate plot aspect ratio of ~1.33 (e.g. 30x40 for 1200 sqft, 40x60 for 2400 sqft)
+          plotW = Math.round(Math.sqrt(plotAreaSqFt / 1.33));
+          plotL = Math.round(plotAreaSqFt / Math.max(1, plotW));
+        }
+        list.push({
+          id: 'plot-boundary-0',
+          name: 'Plot Area',
+          type: 'land',
+          length: plotL,
+          width: plotW,
+          height: 0,
+          area: plotAreaSqFt,
+          unit: 'ft',
+        });
+      } else if (isCommercial) {
+        // COMMERCIAL LISTING: Represent open commercial / office floor without fabricated residential bedrooms
+        const mainL = Math.max(16, Number(length) || 24);
+        const mainW = Math.max(12, Number(width) || 18);
+        list.push({
+          id: 'commercial-main',
+          name: 'Main Commercial Space',
+          type: 'study', // clean professional / office floor layout
+          length: mainL,
+          width: mainW,
+          height: 10,
+          unit: 'ft',
+        });
+        if (bathrooms > 0) {
           list.push({
-            id: `${type}-${i}`,
-            name: count > 1 ? `${namePrefix} ${i + 1}` : namePrefix,
-            type,
-            length: pal.defaultL,
-            width: pal.defaultW,
+            id: 'commercial-restroom',
+            name: 'Restroom',
+            type: 'bathroom',
+            length: 8,
+            width: 6,
             height: 9,
             unit: 'ft',
           });
         }
-      };
+        if (parking > 0) {
+          list.push({
+            id: 'commercial-parking',
+            name: 'Commercial Parking',
+            type: 'garage',
+            length: 18,
+            width: 12,
+            height: 9,
+            unit: 'ft',
+          });
+        }
+      } else {
+        // RESIDENTIAL LISTING: Only residential houses / flats get bedroom / hall / kitchen fallback
+        const add = (roomType, count, namePrefix) => {
+          const pal = ROOM_PALETTES[roomType] || ROOM_PALETTES.other;
+          for (let i = 0; i < count; i += 1) {
+            list.push({
+              id: `${roomType}-${i}`,
+              name: count > 1 ? `${namePrefix} ${i + 1}` : namePrefix,
+              type: roomType,
+              length: pal.defaultL,
+              width: pal.defaultW,
+              height: 9,
+              unit: 'ft',
+            });
+          }
+        };
 
-      if (hall > 0) add('living', 1, 'Living Room');
-      if (kitchen > 0) add('kitchen', 1, 'Kitchen');
-      if (hall > 0 && kitchen > 0) add('dining', 1, 'Dining Room');
-      add('bedroom', Math.max(Number(bedrooms) || 1, 1), 'Bedroom');
-      if (bathrooms > 0) add('bathroom', Number(bathrooms), 'Bathroom');
-      if (parking > 0) add('garage', 1, 'Parking Space');
+        if (hall > 0) add('living', 1, 'Living Room');
+        if (kitchen > 0) add('kitchen', 1, 'Kitchen');
+        if (hall > 0 && kitchen > 0) add('dining', 1, 'Dining Room');
+        add('bedroom', Math.max(Number(bedrooms) || 1, 1), 'Bedroom');
+        if (bathrooms > 0) add('bathroom', Number(bathrooms), 'Bathroom');
+        if (parking > 0) add('garage', 1, 'Parking Space');
+      }
     }
 
     // Disambiguate all room names first to guarantee zero duplicate names
@@ -1982,8 +2068,10 @@ export default function Room3D({
   }, [showNames]);
 
   useEffect(() => {
-    const mount = mountRef.current;
-    if (!mount || !normalizedRooms.length) return undefined;
+    const mount = mountNode;
+    if (!mount || !normalizedRooms.length) {
+      return undefined;
+    }
 
     const widthPx = mount.clientWidth || 600;
     const heightPx = mount.clientHeight || 450;
@@ -2006,8 +2094,14 @@ export default function Room3D({
     const minZ = Math.min(...normalizedRooms.map((r) => r.z - r.wM / 2));
     const maxZ = Math.max(...normalizedRooms.map((r) => r.z + r.wM / 2));
 
-    const totalSpanX = maxX - minX;
-    const totalSpanZ = maxZ - minZ;
+    const totalSpanX = Math.max(maxX - minX, 1);
+    const totalSpanZ = Math.max(maxZ - minZ, 1);
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minZ + maxZ) / 2;
+    centerRef.current = { x: centerX, z: centerZ };
+
+    // Center the entire house group at the world origin so camera framing & orbit rotation are perfectly symmetric
+    houseGroup.position.set(-centerX, 0, -centerZ);
 
     // 1. Identify Doors and Entrances for the complete house layout (NEVER for Plot/Land)
     const propertyDoors = isLand
@@ -2015,9 +2109,9 @@ export default function Room3D({
       : ((canonicalDoors && canonicalDoors.length) ? canonicalDoors : generatePropertyDoors(normalizedRooms));
 
     // 2. Architectural Foundation Plinth (Pedestal) centered at (0, -0.06, 0)
-    const plinthL = totalSpanX + 0.7;
-    const plinthW = totalSpanZ + 0.7;
-    const plinthGeo = new THREE.BoxGeometry(plinthL, 0.12, plinthW);
+    const plinthL = totalSpanX + (isLand ? 0.2 : 0.7);
+    const plinthW = totalSpanZ + (isLand ? 0.2 : 0.7);
+    const plinthGeo = new THREE.BoxGeometry(plinthL, isLand ? 0.05 : 0.12, plinthW);
     geometries.push(plinthGeo);
     const plinthMat = new THREE.MeshStandardMaterial({
       color: isLand ? 0xd0dbcd : 0xe2e8f0,
@@ -2025,7 +2119,7 @@ export default function Room3D({
     });
     materials.push(plinthMat);
     const plinthMesh = new THREE.Mesh(plinthGeo, plinthMat);
-    plinthMesh.position.set(0, -0.06, 0);
+    plinthMesh.position.set(centerX, isLand ? -0.025 : -0.06, centerZ);
     plinthMesh.receiveShadow = true;
     houseGroup.add(plinthMesh);
 
@@ -2226,17 +2320,18 @@ export default function Room3D({
 
     const cameraTarget = new THREE.Vector3(0, wallHeight * 0.35, 0);
 
-    // Compute bounding box corners with comfortable safety margin
-    const pad = 0.35;
+    // Compute bounding box corners centered at origin with comfortable safety margin
+    const halfX = totalSpanX / 2 + 0.35;
+    const halfZ = totalSpanZ / 2 + 0.35;
     const corners = [
-      new THREE.Vector3(minX - pad, 0, minZ - pad),
-      new THREE.Vector3(maxX + pad, 0, minZ - pad),
-      new THREE.Vector3(minX - pad, wallHeight + 0.45, minZ - pad),
-      new THREE.Vector3(maxX + pad, wallHeight + 0.45, minZ - pad),
-      new THREE.Vector3(minX - pad, 0, maxZ + pad),
-      new THREE.Vector3(maxX + pad, 0, maxZ + pad),
-      new THREE.Vector3(minX - pad, wallHeight + 0.45, maxZ + pad),
-      new THREE.Vector3(maxX + pad, wallHeight + 0.45, maxZ + pad),
+      new THREE.Vector3(-halfX, 0, -halfZ),
+      new THREE.Vector3(halfX, 0, -halfZ),
+      new THREE.Vector3(-halfX, wallHeight + 0.45, -halfZ),
+      new THREE.Vector3(halfX, wallHeight + 0.45, -halfZ),
+      new THREE.Vector3(-halfX, 0, halfZ),
+      new THREE.Vector3(halfX, 0, halfZ),
+      new THREE.Vector3(-halfX, wallHeight + 0.45, halfZ),
+      new THREE.Vector3(halfX, wallHeight + 0.45, halfZ),
     ];
 
     let cameraDistance = 15;
@@ -2366,12 +2461,13 @@ export default function Room3D({
         mount.removeChild(renderer.domElement);
       }
     };
-  }, [roomsKey]);
+  }, [mountNode, roomsKey]);
 
   const handleSelectRoom = (room) => {
     setSelectedId(room.id);
     if (controlsRef.current) {
-      controlsRef.current.focus(room.x, room.z);
+      const c = centerRef.current || { x: 0, z: 0 };
+      controlsRef.current.focus(room.x - c.x, room.z - c.z);
     }
   };
 
@@ -2387,6 +2483,41 @@ export default function Room3D({
     [normalizedRooms, selectedId]
   );
 
+  if (activeFloorPlan?.url && (isPdfPlan || analysisStatus === 'unsupported_pdf')) {
+    return (
+      <div className="relative flex h-full w-full flex-col items-center justify-center p-6 text-center select-none overflow-hidden rounded-2xl bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 border border-slate-300/50 dark:border-slate-800">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-red-600 dark:bg-red-500/20">
+          <FiFileText className="h-8 w-8" />
+        </div>
+        <h4 className="font-display text-lg font-bold text-slate-800 dark:text-slate-100">
+          Architectural PDF Floor Plan Attached
+        </h4>
+        <p className="mt-2 max-w-md text-sm text-slate-600 dark:text-slate-400">
+          Automated 3D room extraction is not supported for raw PDF documents. You can inspect or download the original high-resolution architectural plan below.
+        </p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href={activeFloorPlan.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-90 transition"
+          >
+            <FiExternalLink className="h-3.5 w-3.5" />
+            View PDF Document
+          </a>
+          <a
+            href={activeFloorPlan.url}
+            download
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          >
+            <FiDownload className="h-3.5 w-3.5" />
+            Download Plan
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   if (activeFloorPlan?.url && (analysisStatus === 'failed' || canonicalLayout?.status === 'failed')) {
     return (
       <div className="relative flex h-full w-full flex-col items-center justify-center p-6 text-center select-none overflow-hidden rounded-2xl bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950 border border-amber-300/40 dark:border-amber-800/40">
@@ -2394,19 +2525,30 @@ export default function Room3D({
           <FiAlertTriangle className="h-8 w-8" />
         </div>
         <h4 className="font-display text-lg font-bold text-slate-800 dark:text-slate-100">
-          Floor plan analysis failed
+          Floor plan analysis could not extract room boundaries
         </h4>
         <p className="mt-2 max-w-md text-sm text-slate-600 dark:text-slate-400">
-          {analysisError || canonicalLayout?.error || 'The uploaded floor plan could not be processed to extract spatial boundaries and room placements. To prevent displaying an inaccurate house layout, procedural generation has been disabled.'}
+          {analysisError || canonicalLayout?.error || 'The uploaded floor plan could not be processed to extract spatial boundaries and room placements. Procedural layout has not been fabricated to avoid misrepresenting the property.'}
         </p>
-        <button
-          type="button"
-          onClick={() => triggerAnalysis(true)}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-90 transition"
-        >
-          <FiRefreshCw className="h-3.5 w-3.5" />
-          Retry Analysis
-        </button>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => triggerAnalysis(true)}
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-sm hover:opacity-90 transition"
+          >
+            <FiRefreshCw className="h-3.5 w-3.5" />
+            Retry Analysis
+          </button>
+          <a
+            href={activeFloorPlan.url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+          >
+            <FiExternalLink className="h-3.5 w-3.5" />
+            View Uploaded Plan
+          </a>
+        </div>
       </div>
     );
   }
@@ -2436,7 +2578,7 @@ export default function Room3D({
   return (
     <div className="relative h-full w-full select-none overflow-hidden rounded-2xl bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-900 dark:to-slate-950">
       <div
-        ref={mountRef}
+        ref={handleMountRef}
         className="absolute inset-0 h-full w-full cursor-grab active:cursor-grabbing"
         style={{ touchAction: 'none' }}
       />
@@ -2449,7 +2591,7 @@ export default function Room3D({
           className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-emerald-300/40 bg-emerald-50/95 px-3 py-1 text-[11px] font-semibold text-emerald-800 shadow-sm backdrop-blur dark:border-emerald-700/50 dark:bg-emerald-950/90 dark:text-emerald-300"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          <span>Floor-plan based 3D ({normalizedRooms.length} rooms)</span>
+          <span>Architectural 3D · Floor-plan derived ({normalizedRooms.length} rooms)</span>
         </motion.div>
       )}
       {canonicalLayout?.source === 'procedural' && !activeFloorPlan?.url && (
@@ -2460,7 +2602,13 @@ export default function Room3D({
           className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-slate-300/40 bg-slate-50/95 px-3 py-1 text-[11px] font-medium text-slate-800 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-          <span>Procedural 3D ({normalizedRooms.length} rooms)</span>
+          <span>
+            {isLand
+              ? '3D Plot Boundary · Indicative land area'
+              : isCommercial
+              ? '3D Commercial Space · Indicative floor layout'
+              : `Estimated 3D Model · Indicative layout (${normalizedRooms.length} rooms)`}
+          </span>
         </motion.div>
       )}
 

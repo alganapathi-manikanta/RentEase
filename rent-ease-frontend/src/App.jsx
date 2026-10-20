@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { FiGrid, FiSearch, FiHeart, FiUser, FiPlus, FiList, FiBarChart2, FiSettings } from 'react-icons/fi';
+import { FiGrid, FiSearch, FiHeart, FiUser, FiPlus, FiList, FiBarChart2, FiSettings, FiMessageSquare } from 'react-icons/fi';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -21,6 +21,7 @@ import ResetPassword from './pages/ResetPassword';
 import SearchProperties from './pages/SearchProperties';
 import PropertyDetails from './pages/PropertyDetails';
 import ExpenseCalculator from './pages/ExpenseCalculator';
+import ChatInbox from './pages/ChatInbox';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
@@ -42,6 +43,7 @@ import { useAuth } from './context/AuthContext';
 const tenantLinks = [
   { to: '/tenant/wishlist', label: 'Wishlist', icon: FiHeart },
   { to: '/search', label: 'Search Properties', icon: FiSearch },
+  { to: '/tenant/messages', label: 'Messages', icon: FiMessageSquare },
   { to: '/tenant/profile', label: 'Profile', icon: FiUser },
   { to: '/tenant/settings', label: 'Settings', icon: FiSettings },
 ];
@@ -50,6 +52,7 @@ const landlordLinks = [
   { to: '/landlord/dashboard', label: 'Dashboard', icon: FiGrid, end: true },
   { to: '/landlord/add-property', label: 'Add Property', icon: FiPlus },
   { to: '/landlord/posted-properties', label: 'Posted Properties', icon: FiList },
+  { to: '/landlord/messages', label: 'Messages', icon: FiMessageSquare },
   { to: '/landlord/reports', label: 'Reports', icon: FiBarChart2 },
   { to: '/landlord/profile', label: 'Profile', icon: FiUser },
   { to: '/landlord/settings', label: 'Settings', icon: FiSettings },
@@ -123,6 +126,8 @@ export default function App() {
         <Route path="/tenant" element={<Navigate to="/tenant/wishlist" replace />} />
         <Route path="/tenant/wishlist" element={<Favorites />} />
         <Route path="/tenant/favorites" element={<Navigate to="/tenant/wishlist" replace />} />
+        <Route path="/tenant/messages" element={<ChatInbox />} />
+        <Route path="/tenant/messages/:conversationId" element={<ChatInbox />} />
         <Route path="/tenant/profile" element={<Profile />} />
         <Route path="/tenant/settings" element={<Settings />} />
       </Route>
@@ -140,6 +145,8 @@ export default function App() {
         <Route path="/landlord/edit-property/:id" element={<EditProperty />} />
         <Route path="/landlord/posted-properties" element={<ManageProperties />} />
         <Route path="/landlord/manage-properties" element={<ManageProperties />} />
+        <Route path="/landlord/messages" element={<ChatInbox />} />
+        <Route path="/landlord/messages/:conversationId" element={<ChatInbox />} />
         <Route path="/landlord/reports" element={<Reports />} />
         <Route path="/landlord/profile" element={<Profile />} />
         <Route path="/landlord/settings" element={<Settings />} />
@@ -192,6 +199,29 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <PublicLayout>
+              <ChatInbox />
+            </PublicLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages/:conversationId"
+        element={
+          <ProtectedRoute>
+            <PublicLayout>
+              <ChatInbox />
+            </PublicLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/chat" element={<Navigate to="/messages" replace />} />
+      <Route path="/chat/:conversationId" element={<Navigate to="/messages/:conversationId" replace />} />
 
       <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
     </Routes>

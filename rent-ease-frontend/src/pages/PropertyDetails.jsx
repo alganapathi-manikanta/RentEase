@@ -20,6 +20,7 @@ import {
   FiDownload,
   FiExternalLink,
   FiEdit2,
+  FiMessageSquare,
 } from 'react-icons/fi';
 import { BiBed, BiBath } from 'react-icons/bi';
 import { MdKitchen, MdWeekend, MdLocalParking, MdSquareFoot } from 'react-icons/md';
@@ -55,40 +56,68 @@ export default function PropertyDetails() {
 
   const [directProperty, setDirectProperty] = useState(null);
   const [directLoading, setDirectLoading] = useState(false);
-  const [fetchFailed, setFetchFailed] = useState(false);
+  const [fetchFailedId, setFetchFailedId] = useState(null);
+  const inFlightIdRef = useRef(null);
+  const idRef = useRef(id);
+  idRef.current = id;
 
   const propertyFromList = properties.find((p) => String(p.id) === String(id) || String(p._id) === String(id));
-  const property = propertyFromList || directProperty;
+  const directPropertyMatches = directProperty && String(directProperty.id || directProperty._id) === String(id);
+  const property = directPropertyMatches ? directProperty : propertyFromList;
 
-  // Direct fetch fallback if property not found in cached list
+  // Check whether 3D layout data is already present on the current property
+  const hasComplete3D = Boolean(
+    (property?.canonicalLayout && (property.canonicalLayout.rooms?.length || property.canonicalLayout.layout?.rooms?.length)) ||
+    (property?.floorPlan?.layout && (property.floorPlan.layout.rooms?.length || property.floorPlan.layout.roomPlacements?.length)) ||
+    (property?.threeDConfig?.canonicalLayout && (property.threeDConfig.canonicalLayout.rooms?.length || property.threeDConfig.canonicalLayout.floors?.length)) ||
+    (Array.isArray(property?.floorPlan?.roomPlacements) && property.floorPlan.roomPlacements.length > 0)
+  );
+
+  // Fetch full property record if not in cache OR if cached property lacks complete 3D layout data
   useEffect(() => {
-    if (propertyFromList || directProperty || fetchFailed || !id) return;
-    if (propertiesLoading) return;
+    if (!id) return;
+    const strId = String(id);
 
-    let active = true;
+    // If we already have the directly fetched complete record for this id, avoid repeated fetch
+    if (directPropertyMatches) return;
+
+    // If already in flight or previously failed for this id, avoid repeated fetch
+    if (inFlightIdRef.current === strId || fetchFailedId === strId) return;
+
+    // If listings are still loading and we don't have a cached record yet, wait
+    if (propertiesLoading && !propertyFromList) return;
+
+    // If the cached record already includes complete 3D layout data, avoid repeated fetch
+    if (propertyFromList && hasComplete3D) return;
+
+    inFlightIdRef.current = strId;
     setDirectLoading(true);
-    api.get(`/properties/${id}`)
+
+    api.get(`/properties/${strId}`)
       .then((res) => {
-        if (active) {
+        if (String(idRef.current) === strId) {
           const fetched = res.data?.data || res.data?.property || res.data;
           if (fetched) {
             setDirectProperty(fetched);
           } else {
-            setFetchFailed(true);
+            setFetchFailedId(strId);
           }
         }
       })
       .catch(() => {
-        if (active) setFetchFailed(true);
+        if (String(idRef.current) === strId) {
+          setFetchFailedId(strId);
+        }
       })
       .finally(() => {
-        if (active) setDirectLoading(false);
+        if (inFlightIdRef.current === strId) {
+          inFlightIdRef.current = null;
+        }
+        if (String(idRef.current) === strId) {
+          setDirectLoading(false);
+        }
       });
-
-    return () => {
-      active = false;
-    };
-  }, [id, propertyFromList, directProperty, propertiesLoading, fetchFailed]);
+  }, [id, directPropertyMatches, fetchFailedId, propertiesLoading, propertyFromList, hasComplete3D]);
 
   const landlordName = property?.landlord?.name || property?.ownerId?.name || property?.ownerName || 'Property Owner';
   const rawLandlordPhone = property?.landlord?.phone || property?.ownerId?.phone || property?.ownerPhone || '';
@@ -100,6 +129,30 @@ export default function PropertyDetails() {
   const [show3D, setShow3D] = useState(false);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [expandedDescriptions, setExpandedDescriptions] = useState({});
+  const [negotiationLoading, setNegotiationLoading] = useState(false);
+
+  const handleStartNegotiation = async () => {
+    if (!user) {
+      navigate(`/login?redirect=/property/${property.id || property._id}`);
+      return;
+    }
+    setNegotiationLoading(true);
+    try {
+      const res = await api.post('/chat/conversations', {
+        propertyId: property.id || property._id,
+      });
+      if (res.data?.success && res.data.conversation?._id) {
+        navigate(`/messages/${res.data.conversation._id}`);
+      } else {
+        navigate('/messages');
+      }
+    } catch (err) {
+      console.error('Failed to initiate negotiation:', err);
+      navigate('/messages');
+    } finally {
+      setNegotiationLoading(false);
+    }
+  };
 
   const toggleDescription = (roomKey) => {
     setExpandedDescriptions((prev) => ({
@@ -184,7 +237,16 @@ export default function PropertyDetails() {
   // Set show3D when property with valid dimensions loads
   useEffect(() => {
     if (property) {
+      const isPlot = isPlotOrLandType(property.propertyType || property.type || property.category);
+      const hasValidPlotArea = isPlot && (
+        Number(property.sqft) > 0 ||
+        Number(property.squareFeet) > 0 ||
+        Number(property.size) > 0 ||
+        Number(property.landDetails?.area) > 0 ||
+        Number(property.landDetails?.plotArea) > 0
+      );
       const hasValidRoomDimensions =
+        hasValidPlotArea ||
         property.threeDConfig?.floors?.some((floor) => floor.rooms?.length) ||
         (Array.isArray(property.rooms) && property.rooms.length > 0) ||
         (Number(property.roomLength) > 0 && Number(property.roomWidth) > 0);
@@ -604,6 +666,22 @@ export default function PropertyDetails() {
                 </Link>
               </motion.div>
             )}
+            {!isOwner && (
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <button
+                  onClick={handleStartNegotiation}
+                  disabled={negotiationLoading}
+                  className="btn-primary w-full flex items-center justify-center gap-2 shadow-sm font-semibold"
+                >
+                  {negotiationLoading ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <FiMessageSquare />
+                  )}
+                  <span>Chat & Negotiate</span>
+                </button>
+              </motion.div>
+            )}
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <button
                 onClick={() => {
@@ -940,7 +1018,7 @@ export default function PropertyDetails() {
               bathrooms={stats.bathrooms}
               kitchen={stats.kitchen}
               hall={stats.hall}
-              sqft={stats.sqft}
+              sqft={stats.sqft || property.squareFeet || property.sqft || property.size || property.landDetails?.area || 0}
               parking={stats.parking}
               floors={property.floors || property.totalFloors || property.numberOfFloors || 1}
             />

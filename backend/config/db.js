@@ -40,9 +40,16 @@ export const connectDB = async () => {
         throw initialError;
       }
     } else {
-      console.error(`MongoDB connection error to ${uri}: ${initialError.message}`);
-      throw initialError;
+      console.warn(`Remote MongoDB connection error: ${initialError.message}. Falling back to local MongoDB service...`);
+      try {
+        const localFallbackUri = 'mongodb://127.0.0.1:27017/rent-ease';
+        const conn = await mongoose.connect(localFallbackUri, { serverSelectionTimeoutMS: 3000 });
+        console.log(`MongoDB connected successfully to local host: ${conn.connection.host} (Database: ${conn.connection.name})`);
+        return conn;
+      } catch (localErr) {
+        console.error(`Local MongoDB connection also failed: ${localErr.message}`);
+        throw initialError;
+      }
     }
   }
 };
-

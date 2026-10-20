@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { FiX, FiUser, FiLogOut, FiSettings, FiChevronRight, FiHeart } from 'react-icons/fi';
+import { FiX, FiUser, FiLogOut, FiSettings, FiChevronRight, FiHeart, FiMessageSquare } from 'react-icons/fi';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useInfoModal } from '../context/InfoModalContext';
 import DarkModeToggle from './DarkModeToggle';
@@ -47,10 +48,40 @@ export default function Navbar() {
   const { openModal } = useInfoModal();
   const [open, setOpen] = useState(false);
   const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
 
   const isTenant = user?.role === 'tenant';
+
+  // Poll aggregate unread chat count for active user (tenant or landlord)
+  useEffect(() => {
+    if (!user) {
+      setUnreadChatCount(0);
+      return;
+    }
+
+    let isMounted = true;
+    const fetchUnread = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await api.get('/chat/unread-count');
+        if (res.data?.success && isMounted) {
+          setUnreadChatCount(res.data.unreadCount || 0);
+        }
+      } catch (err) {
+        // Silent background polling
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 12000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -155,6 +186,18 @@ export default function Navbar() {
             )}
             {user?.role === 'landlord' && (
               <NavItem to="/landlord/add-property">List Property</NavItem>
+            )}
+            {user && (
+              <NavItem to="/messages">
+                <span className="inline-flex items-center gap-1.5">
+                  <FiMessageSquare size={14} /> Messages
+                  {unreadChatCount > 0 && (
+                    <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                      {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                    </span>
+                  )}
+                </span>
+              </NavItem>
             )}
           </div>
 
@@ -301,6 +344,20 @@ export default function Navbar() {
                       <NavItem to="/landlord/add-property" onClick={() => setOpen(false)}>List Property</NavItem>
                     </motion.div>
                   )}
+                  {user && (
+                    <motion.div variants={menuItemVariants}>
+                      <NavItem to="/messages" onClick={() => setOpen(false)}>
+                        <span className="inline-flex items-center gap-1.5">
+                          <FiMessageSquare size={14} /> Messages
+                          {unreadChatCount > 0 && (
+                            <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                              {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                            </span>
+                          )}
+                        </span>
+                      </NavItem>
+                    </motion.div>
+                  )}
                 </motion.nav>
 
                 <div className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-4">
@@ -395,6 +452,25 @@ export default function Navbar() {
                 animate="visible"
                 className="space-y-2"
               >
+                <motion.div variants={menuItemVariants}>
+                  <motion.button
+                    whileHover={{ x: 4 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+                    onClick={() => { navigate('/messages'); closeTenantMenu(); }}
+                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-medium text-ink/70 transition hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/5"
+                  >
+                    <span className="flex items-center gap-3">
+                      <FiMessageSquare size={16} /> Messages
+                      {unreadChatCount > 0 && (
+                        <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                          {unreadChatCount > 9 ? '9+' : unreadChatCount}
+                        </span>
+                      )}
+                    </span>
+                    <FiChevronRight size={14} />
+                  </motion.button>
+                </motion.div>
                 <motion.div variants={menuItemVariants}>
                   <motion.button
                     whileHover={{ x: 4 }}

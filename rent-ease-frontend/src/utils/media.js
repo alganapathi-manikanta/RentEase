@@ -13,11 +13,20 @@ export function resolveMediaUrl(url) {
   if (/^(data:|blob:)/i.test(trimmed)) return trimmed;
 
   if (/^(https?:)?\/\//i.test(trimmed)) {
-    const absoluteUrl = new URL(trimmed, API_BASE_URL);
-    if (absoluteUrl.pathname.startsWith('/uploads/')) {
-      return `${API_ORIGIN}${absoluteUrl.pathname}${absoluteUrl.search}${absoluteUrl.hash}`;
+    try {
+      const parsedUrl = new URL(trimmed, typeof window !== 'undefined' ? window.location.origin : API_BASE_URL);
+      const isBackendOrigin = parsedUrl.origin === API_ORIGIN;
+      const isFrontendOrigin = typeof window !== 'undefined' && parsedUrl.origin === window.location.origin;
+      const isLocalhost = ['localhost', '127.0.0.1', '::1', '[::1]'].includes(parsedUrl.hostname);
+
+      // Only rewrite /uploads/ paths that belong to this app (backend, frontend host, or local dev host)
+      if (parsedUrl.pathname.startsWith('/uploads/') && (isBackendOrigin || isFrontendOrigin || isLocalhost)) {
+        return `${API_ORIGIN}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+      }
+      return trimmed;
+    } catch {
+      return trimmed;
     }
-    return trimmed;
   }
 
   const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
