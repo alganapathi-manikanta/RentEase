@@ -20,7 +20,7 @@ export default function PageTransition({ children, className = '' }) {
       };
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.main
         key={pathname}
         initial={variants.initial}

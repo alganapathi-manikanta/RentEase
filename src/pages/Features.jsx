@@ -4,6 +4,7 @@ import {
   FiHeart, FiSmartphone, FiShield, FiZap, FiBarChart2,
   FiUserCheck, FiList, FiPlus, FiGrid, FiHome
 } from 'react-icons/fi';
+import { LUXURY_EASE } from '../utils/motionVariants';
 
 const FEATURE_GROUPS = [
   {
@@ -81,10 +82,10 @@ export default function Features() {
   return (
     <div className="section py-16 md:py-20">
       <motion.div
-        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 40 }}
+        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, ease: LUXURY_EASE }}
         className="mb-10 text-center"
       >
         <p className="mb-3 inline-flex rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary">
@@ -97,11 +98,23 @@ export default function Features() {
       </motion.div>
 
       <div className="mb-14 flex flex-wrap justify-center gap-3">
-        {FEATURE_SUMMARY.map(({ icon: Icon, label }) => (
-          <div key={label} className="card flex items-center gap-2 px-4 py-2 text-sm font-medium">
+        {FEATURE_SUMMARY.map(({ icon: Icon, label }, idx) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            whileHover={{ scale: 1.04, y: -2 }}
+            transition={{
+              delay: shouldReduceMotion ? 0 : idx * 0.03,
+              duration: 0.35,
+              ease: LUXURY_EASE,
+            }}
+            className="card flex items-center gap-2 px-4 py-2 text-sm font-medium cursor-default"
+          >
             <Icon size={16} className="text-accent" />
             {label}
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -112,23 +125,23 @@ export default function Features() {
           return (
             <motion.div
               key={group.title}
-              initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 96, scale: shouldReduceMotion ? 1 : 0.97 }}
+              initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 22, scale: shouldReduceMotion ? 1 : 0.98 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              whileHover={shouldReduceMotion ? {} : { y: -4 }}
-              viewport={{ once: true, amount: 0.2 }}
+              whileHover={shouldReduceMotion ? {} : { y: -5, scale: 1.012 }}
+              viewport={{ once: true, amount: 0.15 }}
               transition={{
-                delay: shouldReduceMotion ? 0 : (index % 3) * 0.13,
-                duration: shouldReduceMotion ? 0.2 : 0.7,
-                ease: [0.22, 1, 0.36, 1],
+                delay: shouldReduceMotion ? 0 : (index % 3) * 0.08,
+                duration: shouldReduceMotion ? 0.2 : 0.5,
+                ease: LUXURY_EASE,
               }}
-              className="card h-full p-6"
+              className="card h-full p-6 transition-shadow duration-300 hover:shadow-xl hover:border-primary/40"
             >
               <motion.div
-                initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.88 }}
+                initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true, amount: 0.2 }}
-                transition={{ delay: shouldReduceMotion ? 0 : 0.4, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:text-[var(--color-champagne)]"
+                transition={{ delay: shouldReduceMotion ? 0 : 0.15, duration: 0.3, ease: LUXURY_EASE }}
+                className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary dark:text-[var(--color-champagne)] transition-transform duration-300 group-hover:scale-110"
               >
                 <Icon size={22} />
               </motion.div>

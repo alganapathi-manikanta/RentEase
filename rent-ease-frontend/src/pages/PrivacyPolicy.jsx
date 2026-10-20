@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import { FiFileText, FiShield, FiLock, FiDatabase, FiEye, FiCheck } from 'react-icons/fi';
+import { LUXURY_EASE } from '../utils/motionVariants';
 
 const SECTIONS = [
   { id: 'section-1', num: '1.0', title: 'Information We May Collect' },
@@ -24,9 +25,9 @@ export default function PrivacyPolicy({ isModal = false }) {
     <div className="mx-auto max-w-4xl">
       {/* Document Header */}
       <motion.div
-        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 25 }}
+        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, ease: LUXURY_EASE }}
         className="text-center"
       >
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
@@ -51,7 +52,7 @@ export default function PrivacyPolicy({ isModal = false }) {
       <motion.div
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.08, ease: LUXURY_EASE }}
         className="mt-8 rounded-2xl border border-slate-200/90 bg-white/70 p-5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#131f3d]/70 md:p-6"
       >
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -59,16 +60,18 @@ export default function PrivacyPolicy({ isModal = false }) {
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {SECTIONS.map((sec) => (
-            <button
+            <motion.button
               key={sec.id}
               type="button"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => scrollToSection(sec.id)}
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-[var(--color-accent)] hover:bg-[var(--color-accent)]/10 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:hover:text-white"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
               <span className="font-semibold text-[var(--color-accent)]">{sec.num}</span>
               <span>{sec.title}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </motion.div>
@@ -77,7 +80,7 @@ export default function PrivacyPolicy({ isModal = false }) {
       <motion.div
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.55, delay: 0.14, ease: LUXURY_EASE }}
         className="mt-8 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#111c35] sm:p-10 md:p-12"
       >
         {/* Introductory Preamble */}

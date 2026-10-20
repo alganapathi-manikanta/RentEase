@@ -31,6 +31,7 @@ import DarkModeToggle from '../../components/DarkModeToggle';
 import MediaPlaceholder from '../../components/MediaPlaceholder';
 import { resolveMediaUrl } from '../../utils/media';
 import { getPropertyPricing } from '../../utils/propertyPricing';
+import { LUXURY_EASE, backdropFadeVariants, modalScaleVariants } from '../../utils/motionVariants';
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -221,21 +222,23 @@ export default function AdminDashboard() {
               Logged in as <strong className="text-white">{user?.name || 'Administrator'}</strong> ({user?.email})
             </span>
             <DarkModeToggle className="text-white" />
-            <button
+            <motion.button
+              whileTap={{ scale: 0.92 }}
               onClick={handleRefresh}
               disabled={refreshing}
               title="Refresh Data"
               className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-50"
             >
               <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={15} />
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.96 }}
               onClick={handleLogout}
               className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 sm:px-3 text-xs font-medium text-red-300 transition hover:bg-red-500 hover:text-white"
             >
               <FiLogOut size={14} />
               <span className="hidden sm:inline">Logout</span>
-            </button>
+            </motion.button>
           </div>
         </div>
       </header>
@@ -278,8 +281,9 @@ export default function AdminDashboard() {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
-                <button
+                <motion.button
                   key={tab.id}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
                     isActive
@@ -289,7 +293,7 @@ export default function AdminDashboard() {
                 >
                   <Icon size={16} />
                   <span>{tab.label}</span>
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -309,7 +313,10 @@ export default function AdminDashboard() {
           <div className="space-y-8">
             {/* Stat Cards Grid */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="card p-5">
+              <motion.div
+                whileHover={{ y: -3, transition: { duration: 0.2, ease: LUXURY_EASE } }}
+                className="card p-5 transition-shadow hover:shadow-md"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-ink/50 dark:text-slate-400">Total Properties</p>
@@ -327,9 +334,12 @@ export default function AdminDashboard() {
                     {stats?.hiddenProperties ?? 0} Hidden
                   </span>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="card p-5">
+              <motion.div
+                whileHover={{ y: -3, transition: { duration: 0.2, ease: LUXURY_EASE } }}
+                className="card p-5 transition-shadow hover:shadow-md"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-ink/50 dark:text-slate-400">Active Listings</p>
@@ -344,9 +354,12 @@ export default function AdminDashboard() {
                 <p className="mt-4 border-t border-ink/5 pt-3 text-xs text-ink/50 dark:border-white/5 dark:text-slate-400">
                   Visible to public search & homepage
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="card p-5">
+              <motion.div
+                whileHover={{ y: -3, transition: { duration: 0.2, ease: LUXURY_EASE } }}
+                className="card p-5 transition-shadow hover:shadow-md"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-ink/50 dark:text-slate-400">Hidden / Removed Listings</p>
@@ -361,9 +374,12 @@ export default function AdminDashboard() {
                 <p className="mt-4 border-t border-ink/5 pt-3 text-xs text-ink/50 dark:border-white/5 dark:text-slate-400">
                   Soft-deleted / hidden by admin
                 </p>
-              </div>
+              </motion.div>
 
-              <div className="card p-5">
+              <motion.div
+                whileHover={{ y: -3, transition: { duration: 0.2, ease: LUXURY_EASE } }}
+                className="card p-5 transition-shadow hover:shadow-md"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-medium text-ink/50 dark:text-slate-400">Total Users</p>
@@ -377,7 +393,7 @@ export default function AdminDashboard() {
                   <span>{stats?.totalLandlords ?? 0} Landlords</span>
                   <span>{stats?.totalTenants ?? 0} Tenants</span>
                 </div>
-              </div>
+              </motion.div>
             </div>
 
             {/* Quick Actions & Policy Notice */}
@@ -407,34 +423,42 @@ export default function AdminDashboard() {
                   <FiGrid className="text-primary dark:text-[#d4a84f]" /> Quick Management Links
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
+                  <motion.button
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => { setActiveTab('properties'); setPropStatusFilter('all'); }}
                     className="flex flex-col items-start gap-1 rounded-xl border border-ink/10 p-3.5 text-left transition hover:border-primary/40 hover:bg-primary/5 dark:border-white/10 dark:hover:border-[#d4a84f]/40 dark:hover:bg-[#d4a84f]/5"
                   >
                     <span className="text-sm font-semibold">All Properties</span>
                     <span className="text-xs text-ink/50 dark:text-slate-400">{properties.length} total entries</span>
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => { setActiveTab('hidden'); }}
                     className="flex flex-col items-start gap-1 rounded-xl border border-ink/10 p-3.5 text-left transition hover:border-amber-500/40 hover:bg-amber-500/5 dark:border-white/10 dark:hover:border-amber-400/40"
                   >
                     <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">Review Hidden</span>
                     <span className="text-xs text-ink/50 dark:text-slate-400">{properties.filter(p => p.isActive === false).length} hidden listings</span>
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => { setActiveTab('users'); setUserRoleFilter('landlord'); }}
                     className="flex flex-col items-start gap-1 rounded-xl border border-ink/10 p-3.5 text-left transition hover:border-primary/40 hover:bg-primary/5 dark:border-white/10"
                   >
                     <span className="text-sm font-semibold">Landlords</span>
                     <span className="text-xs text-ink/50 dark:text-slate-400">{stats?.totalLandlords ?? 0} registered</span>
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => { setActiveTab('users'); setUserRoleFilter('tenant'); }}
                     className="flex flex-col items-start gap-1 rounded-xl border border-ink/10 p-3.5 text-left transition hover:border-primary/40 hover:bg-primary/5 dark:border-white/10"
                   >
                     <span className="text-sm font-semibold">Tenants</span>
                     <span className="text-xs text-ink/50 dark:text-slate-400">{stats?.totalTenants ?? 0} registered</span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </div>
@@ -811,16 +835,18 @@ export default function AdminDashboard() {
         {actionDialog && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+              variants={backdropFadeVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setActionDialog(null)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              variants={modalScaleVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
               className="card relative z-10 w-full max-w-md p-6 shadow-2xl"
             >
               <div className="mb-4 flex items-center gap-3">
@@ -845,14 +871,16 @@ export default function AdminDashboard() {
               </p>
 
               <div className="flex justify-end gap-3">
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => setActionDialog(null)}
                   className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink/70 transition hover:bg-ink/5 dark:border-white/10 dark:text-slate-300"
                 >
                   Cancel
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => {
                     if (actionDialog.type === 'hideProperty') handleHideProperty(actionDialog.data);
@@ -868,7 +896,7 @@ export default function AdminDashboard() {
                   }`}
                 >
                   {actionDialog.confirmText}
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </div>
@@ -880,16 +908,18 @@ export default function AdminDashboard() {
         {inspectProperty && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+              variants={backdropFadeVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => setInspectProperty(null)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              variants={modalScaleVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
               className="card relative z-10 max-h-[85vh] w-full max-w-2xl overflow-y-auto p-6 shadow-2xl"
             >
               <div className="mb-4 flex items-center justify-between border-b border-ink/10 pb-3 dark:border-white/10">
@@ -899,12 +929,13 @@ export default function AdminDashboard() {
                     ID: {inspectProperty._id || inspectProperty.id} • {inspectProperty.type} ({getPropertyPricing(inspectProperty).badgeText})
                   </p>
                 </div>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.92 }}
                   onClick={() => setInspectProperty(null)}
                   className="rounded-lg p-1.5 text-ink/50 hover:bg-ink/5 dark:text-slate-400 dark:hover:bg-white/5"
                 >
                   <FiX size={18} />
-                </button>
+                </motion.button>
               </div>
 
               <div className="space-y-4 text-sm">
@@ -971,14 +1002,16 @@ export default function AdminDashboard() {
               </div>
 
               <div className="mt-6 flex justify-end gap-3 border-t border-ink/10 pt-4 dark:border-white/10">
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setInspectProperty(null)}
                   className="rounded-lg border border-ink/10 px-4 py-2 text-sm font-medium text-ink/70 dark:border-white/10 dark:text-slate-300"
                 >
                   Close
-                </button>
+                </motion.button>
                 {inspectProperty.isActive !== false ? (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       const prop = inspectProperty;
                       setInspectProperty(null);
@@ -994,9 +1027,10 @@ export default function AdminDashboard() {
                     className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700"
                   >
                     Hide Property
-                  </button>
+                  </motion.button>
                 ) : (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       const prop = inspectProperty;
                       setInspectProperty(null);
@@ -1012,7 +1046,7 @@ export default function AdminDashboard() {
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
                   >
                     Restore Property
-                  </button>
+                  </motion.button>
                 )}
               </div>
             </motion.div>

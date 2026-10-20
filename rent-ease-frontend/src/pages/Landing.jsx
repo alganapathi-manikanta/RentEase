@@ -226,7 +226,7 @@ export default function Landing() {
               viewport={{ once: true, amount: 0.2 }}
               transition={{ delay: shouldReduceMotion ? 0 : i * 0.05, duration: 0.35, ease: LUXURY_EASE }}
               onClick={() => navigate(`/search?type=${c.type}`)}
-              className="card group flex min-w-[125px] flex-col items-center gap-2 px-6 py-5 shadow-sm transition hover:shadow-lg hover:border-primary/40"
+              className="card group flex min-w-[125px] flex-col items-center gap-2 px-6 py-5 shadow-sm transition-all duration-300 hover:shadow-glass hover:border-[var(--color-accent)]/50"
             >
               <motion.div
                 whileHover={{ rotate: 8, scale: 1.12 }}
@@ -299,7 +299,7 @@ export default function Landing() {
       </section>
 
       {/* Stats */}
-      <section className="mt-12 bg-primary py-16 text-white overflow-hidden relative">
+      <section className="mt-12 bg-gradient-to-r from-[#0D1929] via-[#14263D] to-[#0D1929] border-y border-[#D5A348]/20 py-16 text-white overflow-hidden relative">
         <div className="section grid grid-cols-2 gap-8 text-center md:grid-cols-4">
           {STATS.map((s, i) => (
             <motion.div
@@ -345,7 +345,7 @@ export default function Landing() {
                 duration: shouldReduceMotion ? 0.2 : 0.5,
                 ease: LUXURY_EASE,
               }}
-              className="card group p-6 transition-all duration-300 hover:shadow-xl hover:border-primary/40"
+              className="card group p-6 transition-all duration-300 hover:shadow-glass hover:border-[var(--color-accent)]/40"
             >
               <motion.div
                 initial={{ opacity: 0, scale: shouldReduceMotion ? 1 : 0.9 }}
@@ -408,7 +408,7 @@ export default function Landing() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.25 }}
-          className="card flex flex-col items-center gap-6 bg-gradient-to-br from-primary to-secondary p-12 text-center text-white shadow-xl"
+          className="card relative overflow-hidden flex flex-col items-center gap-6 bg-gradient-to-br from-[#14263D] via-[#10243C] to-[#0D1929] border border-[#D5A348]/25 p-12 text-center text-white shadow-2xl"
         >
           <motion.h2 variants={ctaItemVariants} className="font-display text-3xl font-bold">
             Ready to find or list your next property?

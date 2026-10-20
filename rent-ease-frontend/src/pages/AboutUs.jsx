@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FiHome, FiCheckCircle, FiShield, FiHeart, FiArrowRight, FiLayers } from 'react-icons/fi';
 import { useInfoModal } from '../context/InfoModalContext';
+import { LUXURY_EASE } from '../utils/motionVariants';
 
 export default function AboutUs({ isModal = false }) {
   const shouldReduceMotion = useReducedMotion();
@@ -59,7 +60,11 @@ export default function AboutUs({ isModal = false }) {
           </p>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.03]">
+            <motion.div
+              whileHover={{ y: -3, scale: 1.015 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.03] transition-shadow hover:shadow-md"
+            >
               <div className="rounded-lg bg-[var(--color-accent)]/15 p-2 text-[var(--color-accent)]">
                 <FiHome size={18} />
               </div>
@@ -67,9 +72,13 @@ export default function AboutUs({ isModal = false }) {
                 <h3 className="font-semibold text-slate-900 dark:text-white">Houses</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Villas & residences</p>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.03]">
+            <motion.div
+              whileHover={{ y: -3, scale: 1.015 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.03] transition-shadow hover:shadow-md"
+            >
               <div className="rounded-lg bg-[var(--color-accent)]/15 p-2 text-[var(--color-accent)]">
                 <FiLayers size={18} />
               </div>
@@ -77,9 +86,13 @@ export default function AboutUs({ isModal = false }) {
                 <h3 className="font-semibold text-slate-900 dark:text-white">Flats / Apartments</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Gated communities</p>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.03]">
+            <motion.div
+              whileHover={{ y: -3, scale: 1.015 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center gap-3 rounded-xl border border-slate-200/60 bg-slate-50/80 p-3.5 dark:border-white/5 dark:bg-white/[0.03] transition-shadow hover:shadow-md"
+            >
               <div className="rounded-lg bg-[var(--color-accent)]/15 p-2 text-[var(--color-accent)]">
                 <FiCheckCircle size={18} />
               </div>
@@ -87,7 +100,7 @@ export default function AboutUs({ isModal = false }) {
                 <h3 className="font-semibold text-slate-900 dark:text-white">Land and Plots</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">Sites & parcels</p>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -144,20 +157,24 @@ export default function AboutUs({ isModal = false }) {
 
         {/* Inline Navigation Actions */}
         <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <Link
-            to="/search"
-            onClick={handleActionClick}
-            className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-[var(--color-champagne)]"
-          >
-            Browse Properties <FiArrowRight size={15} />
-          </Link>
-          <Link
-            to="/help"
-            onClick={handleActionClick}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
-          >
-            Need Help?
-          </Link>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+            <Link
+              to="/search"
+              onClick={handleActionClick}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--color-accent)] px-6 py-2.5 text-sm font-semibold text-slate-950 shadow-sm transition hover:bg-[var(--color-champagne)]"
+            >
+              Browse Properties <FiArrowRight size={15} />
+            </Link>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+            <Link
+              to="/help"
+              onClick={handleActionClick}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-white/15 dark:text-slate-200 dark:hover:bg-white/5"
+            >
+              Need Help?
+            </Link>
+          </motion.div>
         </div>
       </div>
     </div>
@@ -177,7 +194,7 @@ export default function AboutUs({ isModal = false }) {
         <motion.div
           initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.5, ease: LUXURY_EASE }}
           className="rounded-3xl border border-slate-200/80 bg-white/85 p-8 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-[#111e36]/90 sm:p-12 md:p-14"
         >
           {bodyContent}

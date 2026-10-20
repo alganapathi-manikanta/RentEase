@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 
-const COLORS = ['#2563EB', '#10B981', '#F97316', '#8B5CF6', '#EC4899'];
+const COLORS = ['#14263D', '#D5A348', '#10B981', '#4678C8', '#F97316'];
 
 export default function Reports() {
   const { user } = useAuth();
@@ -41,8 +41,8 @@ export default function Reports() {
             <YAxis fontSize={11} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="views" fill="#2563EB" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="interested" fill="#10B981" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="views" fill="#14263D" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="interested" fill="#D5A348" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

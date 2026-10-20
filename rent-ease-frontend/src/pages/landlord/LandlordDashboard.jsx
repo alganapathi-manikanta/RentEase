@@ -5,6 +5,7 @@ import { FiHome, FiEye, FiUsers, FiDollarSign, FiPlus, FiArrowRight } from 'reac
 import { useAuth } from '../../context/AuthContext';
 import { useAppData } from '../../context/AppDataContext';
 import { getPropertyPricing } from '../../utils/propertyPricing';
+import { LUXURY_EASE } from '../../utils/motionVariants';
 
 export default function LandlordDashboard() {
   const { user } = useAuth();
@@ -34,7 +35,7 @@ export default function LandlordDashboard() {
       <motion.div
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.45, ease: LUXURY_EASE }}
         className="flex flex-wrap items-center justify-between gap-4"
       >
         <div>
@@ -42,7 +43,7 @@ export default function LandlordDashboard() {
           <p className="mt-1 text-sm text-ink/60 dark:text-slate-400">Here's how your properties are performing.</p>
         </div>
         <motion.div whileHover={{ scale: 1.04, y: -1 }} whileTap={{ scale: 0.96 }}>
-          <Link to="/landlord/add-property" className="btn-primary">
+          <Link to="/landlord/add-property" className="btn-primary shadow-md">
             <FiPlus /> Add Property
           </Link>
         </motion.div>
@@ -52,14 +53,14 @@ export default function LandlordDashboard() {
         {cards.map((c, i) => (
           <motion.div
             key={c.label}
-            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 90, scale: shouldReduceMotion ? 1 : 0.97 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 22, scale: shouldReduceMotion ? 1 : 0.98 }}
             whileInView={{ opacity: 1, y: 0, scale: 1 }}
-            whileHover={shouldReduceMotion ? {} : { y: -6, scale: 1.025 }}
+            whileHover={shouldReduceMotion ? {} : { y: -5, scale: 1.015 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{
-              delay: shouldReduceMotion ? 0 : (i % 4) * 0.13,
-              duration: shouldReduceMotion ? 0.2 : 0.68,
-              ease: [0.22, 1, 0.36, 1],
+              delay: shouldReduceMotion ? 0 : (i % 4) * 0.08,
+              duration: shouldReduceMotion ? 0.2 : 0.45,
+              ease: LUXURY_EASE,
             }}
             className="card p-6 transition-shadow duration-300 hover:shadow-xl hover:border-primary/40 cursor-default"
           >
@@ -77,11 +78,11 @@ export default function LandlordDashboard() {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 22 }}
+        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.15 }}
-        transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
-        className="card p-6"
+        transition={{ duration: 0.45, delay: shouldReduceMotion ? 0 : 0.15, ease: LUXURY_EASE }}
+        className="card p-6 shadow-sm"
       >
         <div className="mb-4 flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3">
           <h2 className="font-display text-lg font-semibold">Your Recent Listings</h2>
@@ -99,7 +100,7 @@ export default function LandlordDashboard() {
           <div className="flex flex-col items-center gap-3 py-12 text-center">
             <p className="text-ink/50 dark:text-slate-400">You haven't listed any properties yet.</p>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-              <Link to="/landlord/add-property" className="btn-primary">
+              <Link to="/landlord/add-property" className="btn-primary shadow-md">
                 <FiPlus /> Add Your First Property
               </Link>
             </motion.div>
@@ -113,7 +114,7 @@ export default function LandlordDashboard() {
                   key={p.id}
                   initial={{ opacity: 0, x: shouldReduceMotion ? 0 : -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: shouldReduceMotion ? 0 : 0.25 + idx * 0.05, duration: 0.35 }}
+                  transition={{ delay: shouldReduceMotion ? 0 : 0.2 + idx * 0.05, duration: 0.35, ease: LUXURY_EASE }}
                   className="flex flex-wrap items-center justify-between gap-3 py-3.5 px-2 rounded-xl transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                 >
                   <div>

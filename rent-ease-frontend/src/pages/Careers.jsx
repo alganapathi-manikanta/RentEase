@@ -10,6 +10,7 @@ import {
   FiMail,
   FiInfo,
 } from 'react-icons/fi';
+import { LUXURY_EASE } from '../utils/motionVariants';
 
 const DOMAINS = [
   {
@@ -51,9 +52,9 @@ export default function Careers({ isModal = false }) {
     <div className="mx-auto max-w-5xl">
       {/* Header Section */}
       <motion.div
-        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 25 }}
+        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, ease: LUXURY_EASE }}
         className="text-center"
       >
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400">
@@ -74,7 +75,7 @@ export default function Careers({ isModal = false }) {
       <motion.div
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.08, ease: LUXURY_EASE }}
         className="mt-10 rounded-2xl border border-slate-200/90 bg-white/70 p-6 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#131f3d]/70 md:p-8"
       >
         <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">
@@ -92,7 +93,7 @@ export default function Careers({ isModal = false }) {
       <motion.div
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.14, ease: LUXURY_EASE }}
         className="mt-8 rounded-2xl border border-amber-500/30 bg-amber-50/70 p-6 dark:border-amber-500/20 dark:bg-amber-500/10 md:p-7"
       >
         <div className="flex items-start gap-3.5">
@@ -120,7 +121,7 @@ export default function Careers({ isModal = false }) {
       <motion.div
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.2, ease: LUXURY_EASE }}
         className="mt-10"
       >
         <div className="text-center">
@@ -139,11 +140,13 @@ export default function Careers({ isModal = false }) {
           {DOMAINS.map((domain, i) => {
             const Icon = domain.icon;
             return (
-              <div
+              <motion.div
                 key={i}
-                className="group rounded-2xl border border-slate-200/80 bg-white/70 p-6 shadow-sm transition hover:border-[var(--color-accent)]/50 hover:shadow-md dark:border-white/10 dark:bg-[#131f3d]/70 dark:hover:border-[var(--color-accent)]/40"
+                whileHover={shouldReduceMotion ? {} : { y: -4, scale: 1.015 }}
+                transition={{ duration: 0.25, ease: LUXURY_EASE }}
+                className="group rounded-2xl border border-slate-200/80 bg-white/70 p-6 shadow-sm transition-shadow hover:border-[var(--color-accent)]/50 hover:shadow-md dark:border-white/10 dark:bg-[#131f3d]/70 dark:hover:border-[var(--color-accent)]/40 cursor-default"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/15 text-[var(--color-accent)] transition group-hover:bg-[var(--color-accent)] group-hover:text-slate-950">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-accent)]/15 text-[var(--color-accent)] transition-transform duration-300 group-hover:scale-110">
                   <Icon size={20} />
                 </div>
                 <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-white">
@@ -155,7 +158,7 @@ export default function Careers({ isModal = false }) {
                 >
                   {domain.desc}
                 </p>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -165,7 +168,7 @@ export default function Careers({ isModal = false }) {
       <motion.div
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.25, ease: LUXURY_EASE }}
         className="mt-10 grid gap-6 md:grid-cols-2"
       >
         <div className="rounded-2xl border border-slate-200/90 bg-white/70 p-6 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-[#131f3d]/70 md:p-8">
@@ -193,13 +196,15 @@ export default function Careers({ isModal = false }) {
             </p>
           </div>
           <div className="mt-6">
-            <a
+            <motion.a
               href="mailto:projectplatform15@gmail.com"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2.5 text-xs font-semibold text-slate-950 shadow-sm transition hover:bg-[var(--color-champagne)]"
               style={{ fontFamily: "'Inter', sans-serif" }}
             >
               <FiMail size={15} /> Contact Development Team
-            </a>
+            </motion.a>
           </div>
         </div>
       </motion.div>

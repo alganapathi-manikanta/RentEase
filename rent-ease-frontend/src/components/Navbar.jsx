@@ -27,12 +27,12 @@ function NavItem({ to, children, end = false, onClick }) {
             {children}
           </motion.span>
           <motion.span
-            className="absolute bottom-0 left-2.5 right-2.5 h-[2px] rounded-full bg-[#d4a84f] origin-center"
+            className="absolute bottom-0 left-2.5 right-2.5 h-[2px] rounded-full bg-[#D5A348] origin-center"
             initial={false}
             animate={{
               scaleX: isActive ? 1 : 0,
               opacity: isActive ? 1 : 0,
-              boxShadow: isActive ? '0 0 10px rgba(212,168,79,0.55)' : 'none',
+              boxShadow: isActive ? '0 0 10px rgba(213,163,72,0.55)' : 'none',
             }}
             transition={{ duration: 0.28, ease: LUXURY_EASE }}
           />
@@ -87,7 +87,7 @@ export default function Navbar() {
         initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -14 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: LUXURY_EASE }}
-        className="fixed inset-x-0 top-0 z-[110] bg-[#13253b] border-b border-[#d4a84f]/15 shadow-[0_4px_24px_rgba(0,0,0,0.22)] transition-colors"
+        className="fixed inset-x-0 top-0 z-[110] bg-[#14263D]/90 backdrop-blur-md border-b border-[#D5A348]/20 shadow-[0_8px_32px_rgba(13,25,41,0.25)] transition-colors"
         style={{ height: '72px' }}
       >
         <nav className="section relative flex h-full items-center justify-between gap-4">
@@ -97,7 +97,7 @@ export default function Navbar() {
               whileTap={{ scale: 0.92 }}
               transition={{ type: 'spring', stiffness: 450, damping: 22 }}
               onClick={() => setTenantMenuOpen((prev) => !prev)}
-              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-[#d4a84f]/30 bg-white/5 text-white transition hover:bg-white/10"
+              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-[#D5A348]/35 bg-white/5 text-white transition hover:bg-[#D5A348]/15 hover:border-[#D5A348]/60"
               aria-label={tenantMenuOpen ? 'Close tenant menu' : 'Open tenant menu'}
               aria-expanded={tenantMenuOpen}
             >
@@ -143,7 +143,7 @@ export default function Navbar() {
               <motion.span whileHover={{ y: -1 }} transition={{ duration: 0.15 }} className="inline-block">
                 About
               </motion.span>
-              <span className="absolute bottom-0 left-2.5 right-2.5 h-[2px] rounded-full bg-[#d4a84f] scale-x-0 opacity-0 transition-all duration-300 origin-center group-hover:scale-x-100 group-hover:opacity-100" />
+              <span className="absolute bottom-0 left-2.5 right-2.5 h-[2px] rounded-full bg-[#D5A348] scale-x-0 opacity-0 transition-all duration-300 origin-center group-hover:scale-x-100 group-hover:opacity-100" />
             </button>
             <NavItem to="/help">Help</NavItem>
             {isTenant && (
@@ -175,7 +175,7 @@ export default function Navbar() {
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={handleLogout}
-                  className="navbar-logout inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-full border border-[#d4a84f]/40 text-[#d4a84f] hover:bg-[#d4a84f]/10 transition-colors"
+                  className="navbar-logout inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-full border border-[#D5A348]/40 text-[#D5A348] hover:bg-[#D5A348]/10 transition-colors"
                 >
                   <FiLogOut size={14} /> Logout
                 </motion.button>
@@ -240,7 +240,7 @@ export default function Navbar() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: '100%', opacity: 0 }}
                 transition={SMOOTH_SPRING}
-                className="ml-auto flex h-full w-72 max-w-[85vw] flex-col gap-6 bg-[#13253b] p-6 shadow-2xl dark:bg-slate-900 overflow-y-auto border-l border-[#d4a84f]/15"
+                className="ml-auto flex h-full w-72 max-w-[85vw] flex-col gap-6 bg-[#0D1929]/95 backdrop-blur-xl p-6 shadow-2xl overflow-y-auto border-l border-[#D5A348]/20"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -369,7 +369,7 @@ export default function Navbar() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '-100%', opacity: 0 }}
               transition={SMOOTH_SPRING}
-              className="fixed left-0 top-[72px] z-50 flex h-[calc(100vh-72px)] w-72 max-w-[85vw] flex-col bg-white p-5 shadow-2xl dark:bg-slate-900 overflow-y-auto border-r border-black/5 dark:border-white/5"
+              className="fixed left-0 top-[72px] z-50 flex h-[calc(100vh-72px)] w-72 max-w-[85vw] flex-col bg-white/95 dark:bg-[#0D1929]/95 backdrop-blur-xl p-5 shadow-2xl overflow-y-auto border-r border-[#14263D]/10 dark:border-[#D5A348]/20"
             >
               <div className="mb-6 flex items-center justify-between">
                 <BrandLogo tone="default" size="sidebar" />

@@ -1,11 +1,14 @@
 import { useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
 import { useAppData } from '../context/AppDataContext';
 import { PROPERTY_TYPES } from '../data/mockData';
 import HouseConfigurator, { createDefault3DConfig } from './HouseConfigurator';
+import { backdropFadeVariants, modalScaleVariants } from '../utils/motionVariants';
 
 export default function EditPropertyModal({ property, onClose }) {
   const { updateProperty } = useAppData();
+  const shouldReduceMotion = useReducedMotion();
   const [form, setForm] = useState({
     title: property.title, type: property.type, status: property.status,
     price: property.price, description: property.description,
@@ -23,11 +26,33 @@ export default function EditPropertyModal({ property, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="card w-full max-w-lg p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <motion.div
+        variants={backdropFadeVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        variants={modalScaleVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className="relative z-10 card w-full max-w-lg p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+      >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="font-display text-lg font-semibold">Edit Property</h3>
-          <button onClick={onClose}><FiX /></button>
+          <motion.button
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onClose}
+            className="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5"
+            aria-label="Close"
+          >
+            <FiX size={18} />
+          </motion.button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -58,12 +83,26 @@ export default function EditPropertyModal({ property, onClose }) {
             </div>
           </div>
           <HouseConfigurator value={threeDConfig} onChange={setThreeDConfig} form={form} />
-          <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="btn-ghost flex-1 border border-black/10 dark:border-white/10">Cancel</button>
-            <button type="submit" className="btn-primary flex-1">Save Changes</button>
+          <div className="flex gap-3 pt-2">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={onClose}
+              className="btn-ghost flex-1 border border-black/10 dark:border-white/10"
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              type="submit"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              className="btn-primary flex-1 shadow-md"
+            >
+              Save Changes
+            </motion.button>
           </div>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }

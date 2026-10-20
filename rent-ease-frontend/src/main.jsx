@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
+import { MotionConfig } from 'framer-motion';
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { AppDataProvider } from './context/AppDataContext.jsx';
@@ -9,11 +10,13 @@ import './index.css';
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <AppDataProvider>
-          <App />
-        </AppDataProvider>
-      </AuthProvider>
+      <MotionConfig reducedMotion="user">
+        <AuthProvider>
+          <AppDataProvider>
+            <App />
+          </AppDataProvider>
+        </AuthProvider>
+      </MotionConfig>
     </BrowserRouter>
   </React.StrictMode>
 );

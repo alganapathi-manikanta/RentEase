@@ -5,12 +5,12 @@ import PageTransition from './PageTransition';
 
 export default function DashboardLayout({ links = [], title, children }) {
   return (
-    <div className="min-h-screen bg-surface dark:bg-slate-950">
+    <div className="min-h-screen bg-[var(--color-background)]">
       <Navbar />
       <div className="pt-[72px]">
         {/* Mobile / Tablet Horizontal Quick Navigation Tabs */}
         {links && links.length > 0 && (
-          <div className="flex items-center gap-2 overflow-x-auto border-b border-black/5 bg-white/95 px-4 py-2.5 backdrop-blur-md dark:border-white/5 dark:bg-slate-900/95 lg:hidden">
+          <div className="flex items-center gap-2 overflow-x-auto border-b border-[var(--color-border)] bg-white/90 px-4 py-2.5 backdrop-blur-md dark:bg-[#0D1929]/90 lg:hidden">
             {links.map(({ to, label, icon: Icon, end }) => (
               <NavLink
                 key={to}
@@ -19,7 +19,7 @@ export default function DashboardLayout({ links = [], title, children }) {
                 className={({ isActive }) =>
                   `inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                     isActive
-                      ? 'bg-primary text-white shadow-xs dark:bg-[var(--color-accent)] dark:text-slate-950'
+                      ? 'bg-primary text-white shadow-xs dark:bg-[var(--color-accent)] dark:text-[#0D1929]'
                       : 'bg-black/5 text-ink/70 hover:bg-black/10 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-white/15'
                   }`
                 }

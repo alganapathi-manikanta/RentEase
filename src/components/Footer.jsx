@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { FiTwitter, FiInstagram, FiLinkedin } from 'react-icons/fi';
 import { useInfoModal } from '../context/InfoModalContext';
 import BrandLogo from './BrandLogo';
@@ -17,40 +18,49 @@ export default function Footer() {
           </p>
           <div className="mt-5 flex items-center gap-3">
             {/* Instagram - Official Rent Ease account */}
-            <a
+            <motion.a
               href="https://www.instagram.com/rentease_015/"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Rent Ease on Instagram"
               title="Follow Rent Ease on Instagram"
+              whileHover={{ scale: 1.15, y: -2 }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/90 transition hover:bg-[var(--color-accent)] hover:text-[var(--color-primary)]"
             >
               <FiInstagram size={16} />
-            </a>
+            </motion.a>
 
             {/* LinkedIn */}
-            <a
+            <motion.a
               href="https://www.linkedin.com/feed/"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Rent Ease on LinkedIn"
               title="LinkedIn"
+              whileHover={{ scale: 1.15, y: -2 }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/90 transition hover:bg-[var(--color-accent)] hover:text-[var(--color-primary)]"
             >
               <FiLinkedin size={16} />
-            </a>
+            </motion.a>
 
             {/* Twitter / X - Connected to official Rent Ease account */}
-            <a
+            <motion.a
               href="https://x.com/RentEase_015"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Rent Ease on X"
               title="Follow Rent Ease on X"
+              whileHover={{ scale: 1.15, y: -2 }}
+              whileTap={{ scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/90 transition hover:bg-[var(--color-accent)] hover:text-[var(--color-primary)]"
             >
               <FiTwitter size={16} />
-            </a>
+            </motion.a>
           </div>
         </div>
 
@@ -59,17 +69,17 @@ export default function Footer() {
           <h4 className="mb-4 font-semibold text-white">Explore</h4>
           <ul className="space-y-2 text-sm text-[var(--color-footer-muted)]">
             <li>
-              <Link to="/search" className="transition-colors hover:text-[var(--color-accent)]">
+              <Link to="/search" className="transition-colors duration-200 hover:text-[var(--color-accent)]">
                 Search Properties
               </Link>
             </li>
             <li>
-              <Link to="/register" className="transition-colors hover:text-[var(--color-accent)]">
+              <Link to="/register" className="transition-colors duration-200 hover:text-[var(--color-accent)]">
                 List a Property
               </Link>
             </li>
             <li>
-              <Link to="/features" className="transition-colors hover:text-[var(--color-accent)]">
+              <Link to="/features" className="transition-colors duration-200 hover:text-[var(--color-accent)]">
                 Features
               </Link>
             </li>
@@ -84,7 +94,7 @@ export default function Footer() {
               <button
                 type="button"
                 onClick={() => openModal('about')}
-                className="text-left text-sm text-[var(--color-footer-muted)] transition-colors hover:text-[var(--color-accent)]"
+                className="text-left text-sm text-[var(--color-footer-muted)] transition-colors duration-200 hover:text-[var(--color-accent)]"
               >
                 About Us
               </button>
@@ -93,7 +103,7 @@ export default function Footer() {
               <button
                 type="button"
                 onClick={() => openModal('careers')}
-                className="text-left text-sm text-[var(--color-footer-muted)] transition-colors hover:text-[var(--color-accent)]"
+                className="text-left text-sm text-[var(--color-footer-muted)] transition-colors duration-200 hover:text-[var(--color-accent)]"
               >
                 Careers
               </button>
@@ -102,7 +112,7 @@ export default function Footer() {
               <button
                 type="button"
                 onClick={() => openModal('privacy')}
-                className="text-left text-sm text-[var(--color-footer-muted)] transition-colors hover:text-[var(--color-accent)]"
+                className="text-left text-sm text-[var(--color-footer-muted)] transition-colors duration-200 hover:text-[var(--color-accent)]"
               >
                 Privacy Policy
               </button>
@@ -117,7 +127,7 @@ export default function Footer() {
             <li>
               <a
                 href="mailto:projectplatform15@gmail.com"
-                className="transition-colors hover:text-[var(--color-accent)] break-all"
+                className="transition-colors duration-200 hover:text-[var(--color-accent)] break-all"
               >
                 projectplatform15@gmail.com
               </a>
@@ -125,7 +135,7 @@ export default function Footer() {
             <li>
               <a
                 href="tel:8985211790"
-                className="transition-colors hover:text-[var(--color-accent)]"
+                className="transition-colors duration-200 hover:text-[var(--color-accent)]"
               >
                 8985211790
               </a>

@@ -56,7 +56,7 @@ export default function PropertyCard({ property, index = 0 }) {
           navigate(`/property/${propId}`);
         }
       }}
-      className="card group overflow-hidden transition-shadow duration-300 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/40 flex flex-col justify-between cursor-pointer"
+      className="card group overflow-hidden transition-all duration-300 hover:shadow-glass hover:border-[var(--color-accent)]/40 flex flex-col justify-between cursor-pointer"
     >
       <div>
         <div className="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
@@ -117,14 +117,14 @@ export default function PropertyCard({ property, index = 0 }) {
 
         <div className="p-5">
           <div className="mb-1 flex items-center justify-between">
-            <h3 className="font-display text-lg font-semibold line-clamp-1 group-hover:text-primary transition-colors duration-200">
+            <h3 className="font-display text-lg font-semibold line-clamp-1 group-hover:text-[var(--color-accent-strong)] dark:group-hover:text-[var(--color-accent)] transition-colors duration-200">
               {property.title}
             </h3>
           </div>
           <p className="mb-3 flex items-center gap-1 text-sm text-ink/50 dark:text-slate-400">
             <FiMapPin size={14} className="shrink-0 text-primary/70" /> {property.area}, {property.city}
           </p>
-          <p className="mb-4 font-display text-xl font-bold text-primary">
+          <p className="mb-4 font-display text-xl font-bold text-primary dark:text-[var(--color-accent)] tracking-tight">
             {pricing.cardPriceDisplay}
           </p>
 
