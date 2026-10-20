@@ -205,6 +205,8 @@ const normalizeProperty = (data) => {
 
   const normalized = {
     ...data,
+    id: data._id ? String(data._id) : (data.id || ''),
+    _id: data._id ? String(data._id) : (data.id || ''),
     type,
     propertyType: data.propertyType || type.toLowerCase(),
     listingType,

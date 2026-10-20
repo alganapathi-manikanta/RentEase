@@ -98,7 +98,11 @@ export default function PropertyDetails() {
         if (String(idRef.current) === strId) {
           const fetched = res.data?.data || res.data?.property || res.data;
           if (fetched) {
-            setDirectProperty(fetched);
+            setDirectProperty({
+              ...fetched,
+              id: fetched.id || fetched._id,
+              _id: fetched._id || fetched.id,
+            });
           } else {
             setFetchFailedId(strId);
           }
@@ -659,7 +663,7 @@ export default function PropertyDetails() {
             {isOwner && (
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Link
-                  to={`/landlord/edit-property/${property.id}`}
+                  to={`/landlord/edit-property/${property.id || property._id}`}
                   className="btn-primary w-full flex items-center justify-center gap-2 shadow-sm font-semibold"
                 >
                   <FiEdit2 /> Edit Property
@@ -713,7 +717,7 @@ export default function PropertyDetails() {
               </motion.div>
             )}
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <button onClick={() => navigate(`/property/${property.id}/expenses`)} className="btn-secondary w-full">
+              <button onClick={() => navigate(`/property/${property.id || property._id}/expenses`)} className="btn-secondary w-full">
                 <FiPieChart /> Expense Calculator
               </button>
             </motion.div>

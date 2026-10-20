@@ -109,6 +109,8 @@ export default function App() {
       <Route path="/search" element={<PublicLayout><SearchProperties /></PublicLayout>} />
       <Route path="/property/:id" element={<PublicLayout><PropertyDetails /></PublicLayout>} />
       <Route path="/property/:id/expenses" element={<PublicLayout><ExpenseCalculator /></PublicLayout>} />
+      <Route path="/properties/:id/expenses" element={<PublicLayout><ExpenseCalculator /></PublicLayout>} />
+      <Route path="/property/:id/calculator" element={<PublicLayout><ExpenseCalculator /></PublicLayout>} />
       <Route path="/about" element={<PublicLayout><Landing /></PublicLayout>} />
       <Route path="/about-us" element={<Navigate to="/about" replace />} />
       <Route path="/careers" element={<PublicLayout><Landing /></PublicLayout>} />

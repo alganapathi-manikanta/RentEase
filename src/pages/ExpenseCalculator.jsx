@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   PieChart,
@@ -19,8 +19,11 @@ import {
   FiCreditCard,
   FiTrendingUp,
   FiInfo,
+  FiAlertCircle,
+  FiRefreshCw,
 } from 'react-icons/fi';
 import { useAppData } from '../context/AppDataContext';
+import api from '../utils/api';
 import {
   getPropertyPricing,
   formatCurrency,
@@ -51,13 +54,96 @@ export default function ExpenseCalculator() {
   const navigate = useNavigate();
   const { properties, propertiesLoading, expenses, saveExpenses } = useAppData();
 
-  const property = useMemo(() => {
-    if (!properties || !properties.length) return null;
-    return properties.find(
-      (p) => String(p.id) === String(id) || String(p._id) === String(id)
-    );
-  }, [properties, id]);
+  const [directProperty, setDirectProperty] = useState(null);
+  const [directLoading, setDirectLoading] = useState(false);
+  const [fetchStatus, setFetchStatus] = useState('idle'); // 'idle' | 'loading' | 'success' | 'not_found' | 'error'
+  const [errorMessage, setErrorMessage] = useState('');
+  const inFlightIdRef = useRef(null);
+  const idRef = useRef(id);
+  idRef.current = id;
 
+  const isValidId = Boolean(id && id !== 'undefined' && id !== 'null' && String(id).trim() !== '');
+
+  const propertyFromList = useMemo(() => {
+    if (!isValidId || !properties || !properties.length) return null;
+    return (
+      properties.find(
+        (p) => String(p.id) === String(id) || String(p._id) === String(id)
+      ) || null
+    );
+  }, [properties, id, isValidId]);
+
+  const fetchProperty = useCallback(async (targetId) => {
+    if (!targetId || targetId === 'undefined' || targetId === 'null') {
+      setFetchStatus('not_found');
+      setErrorMessage('Invalid property ID.');
+      return;
+    }
+
+    const strId = String(targetId);
+    inFlightIdRef.current = strId;
+    setDirectLoading(true);
+    setFetchStatus('loading');
+    setErrorMessage('');
+
+    try {
+      const res = await api.get(`/properties/${strId}`);
+      if (String(idRef.current) !== strId) return;
+
+      const payload = res.data?.data || res.data?.property || res.data;
+      if (payload && (payload._id || payload.id)) {
+        const normalized = {
+          ...payload,
+          id: payload.id || payload._id,
+          _id: payload._id || payload.id,
+        };
+        setDirectProperty(normalized);
+        setFetchStatus('success');
+      } else {
+        setFetchStatus('not_found');
+        setErrorMessage('Property not found.');
+      }
+    } catch (err) {
+      if (String(idRef.current) !== strId) return;
+      console.error('Failed to load property for Expense Calculator:', err);
+      const status = err.response?.status;
+      const msg = err.response?.data?.message || err.message || '';
+      if (status === 404 || (status === 400 && msg.toLowerCase().includes('invalid'))) {
+        setFetchStatus('not_found');
+        setErrorMessage('Property not found.');
+      } else {
+        setFetchStatus('error');
+        setErrorMessage(
+          status === 503 || err.code === 'ECONNABORTED'
+            ? 'Cloud server is waking up. Please retry in a few moments.'
+            : 'Unable to load property details. Please check your connection and retry.'
+        );
+      }
+    } finally {
+      if (inFlightIdRef.current === strId) {
+        inFlightIdRef.current = null;
+        setDirectLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isValidId) {
+      setFetchStatus('not_found');
+      return;
+    }
+
+    const strId = String(id);
+    const directMatches = directProperty && String(directProperty.id || directProperty._id) === strId;
+
+    if (directMatches) return;
+    if (inFlightIdRef.current === strId) return;
+
+    fetchProperty(strId);
+  }, [id, isValidId, fetchProperty, directProperty]);
+
+  const directPropertyMatches = directProperty && String(directProperty.id || directProperty._id) === String(id);
+  const property = directPropertyMatches ? directProperty : propertyFromList;
   const pricing = useMemo(() => (property ? getPropertyPricing(property) : null), [property]);
 
   // Active mode tab: 'rental' | 'emi' | 'rentVsBuy'
@@ -114,14 +200,16 @@ export default function ExpenseCalculator() {
     }
 
     // Initialize rental values from saved expenses or property record
-    if (expenses?.[id]) {
+    const targetKey = String(property.id || property._id || id);
+    const saved = expenses?.[targetKey] || expenses?.[property.id] || expenses?.[property._id] || expenses?.[id];
+    if (saved) {
       const initial = {};
       RENTAL_FIELDS.forEach((f) => {
-        const val = expenses[id][f.key];
+        const val = saved[f.key];
         initial[f.key] = val !== undefined && val !== null ? String(val) : '';
       });
-      initial.deposit = expenses[id].deposit !== undefined && expenses[id].deposit !== null
-        ? String(expenses[id].deposit)
+      initial.deposit = saved.deposit !== undefined && saved.deposit !== null
+        ? String(saved.deposit)
         : (pDeposit ? String(pDeposit) : '');
       setRentalValues(initial);
     } else {
@@ -160,7 +248,10 @@ export default function ExpenseCalculator() {
     if (clean === null) return;
     const next = { ...rentalValues, [key]: clean };
     setRentalValues(next);
-    saveExpenses(id, next);
+    const targetKey = property ? String(property.id || property._id) : String(id);
+    if (targetKey && targetKey !== 'undefined') {
+      saveExpenses(targetKey, next);
+    }
   };
 
   const handleEmiChange = (key, rawVal) => {
@@ -275,7 +366,8 @@ export default function ExpenseCalculator() {
   }, [roomAreas]);
 
   // Loading state
-  if (propertiesLoading && !property) {
+  const isInitialLoading = (directLoading || (propertiesLoading && !propertyFromList)) && !property;
+  if (isInitialLoading) {
     return (
       <div className="section flex min-h-[60vh] flex-col items-center justify-center gap-4 py-16 text-center">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
@@ -284,8 +376,33 @@ export default function ExpenseCalculator() {
     );
   }
 
-  // Not found state
+  // Not found or error state
   if (!property) {
+    if (fetchStatus === 'error') {
+      return (
+        <div className="section flex min-h-[60vh] flex-col items-center justify-center gap-4 py-16 text-center">
+          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 ring-8 ring-amber-500/5">
+            <FiAlertCircle className="h-7 w-7" />
+          </div>
+          <h2 className="font-display text-2xl font-bold">Unable to load property</h2>
+          <p className="max-w-md text-sm text-ink/60 dark:text-slate-400">
+            {errorMessage || 'There was a problem communicating with the server. Please check your connection and retry.'}
+          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => fetchProperty(id)}
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              <FiRefreshCw className="h-4 w-4" /> Retry
+            </button>
+            <Link to="/search" className="btn-secondary">
+              Back to Search
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="section flex min-h-[60vh] flex-col items-center justify-center gap-4 py-16 text-center">
         <h2 className="font-display text-2xl font-bold">Property not found</h2>
