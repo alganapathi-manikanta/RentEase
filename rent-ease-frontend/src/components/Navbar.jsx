@@ -1,7 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { FiX, FiUser, FiLogOut, FiSettings, FiChevronRight, FiHeart, FiMessageSquare } from 'react-icons/fi';
+import {
+  FiX,
+  FiUser,
+  FiLogOut,
+  FiSettings,
+  FiChevronRight,
+  FiHeart,
+  FiMessageSquare,
+  FiHome,
+  FiSearch,
+  FiGrid,
+  FiPlus,
+  FiList,
+  FiBarChart2,
+  FiShield,
+  FiInfo,
+  FiHelpCircle,
+} from 'react-icons/fi';
+import { BiBuildingHouse } from 'react-icons/bi';
 import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useInfoModal } from '../context/InfoModalContext';
@@ -43,16 +61,45 @@ function NavItem({ to, children, end = false, onClick }) {
   );
 }
 
+function MobileNavLink({ to, end = false, icon: Icon, children, badge, onClick }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex min-h-[44px] items-center justify-between rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all ${
+          isActive
+            ? 'bg-[#D5A348]/20 text-[#D5A348] font-semibold shadow-xs'
+            : 'text-slate-200 hover:bg-white/10 hover:text-white'
+        }`
+      }
+    >
+      <span className="flex items-center gap-3">
+        {Icon && <Icon size={17} className="flex-shrink-0 text-[#D5A348]" />}
+        <span>{children}</span>
+        {badge != null && badge > 0 && (
+          <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-xs">
+            {badge > 9 ? '9+' : badge}
+          </span>
+        )}
+      </span>
+      <FiChevronRight size={14} className="opacity-50" />
+    </NavLink>
+  );
+}
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { openModal } = useInfoModal();
   const [open, setOpen] = useState(false);
-  const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
 
   const isTenant = user?.role === 'tenant';
+  const isLandlord = user?.role === 'landlord';
+  const isAdmin = user?.role === 'admin';
 
   // Poll aggregate unread chat count for active user (tenant or landlord)
   useEffect(() => {
@@ -83,13 +130,35 @@ export default function Navbar() {
     };
   }, [user]);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
+
+  // Close on Escape key press
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
+
   const handleLogout = () => {
     logout();
-    setTenantMenuOpen(false);
+    setOpen(false);
     navigate('/');
   };
-
-  const closeTenantMenu = () => setTenantMenuOpen(false);
 
   // Stagger variants for mobile drawer items
   const menuContainerVariants = {
@@ -97,18 +166,18 @@ export default function Navbar() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: shouldReduceMotion ? 0 : 0.05,
-        delayChildren: shouldReduceMotion ? 0 : 0.08,
+        staggerChildren: shouldReduceMotion ? 0 : 0.04,
+        delayChildren: shouldReduceMotion ? 0 : 0.06,
       },
     },
   };
 
   const menuItemVariants = {
-    hidden: { opacity: 0, x: shouldReduceMotion ? 0 : 16 },
+    hidden: { opacity: 0, x: shouldReduceMotion ? 0 : 14 },
     visible: {
       opacity: 1,
       x: 0,
-      transition: { duration: 0.32, ease: LUXURY_EASE },
+      transition: { duration: 0.28, ease: LUXURY_EASE },
     },
   };
 
@@ -122,43 +191,13 @@ export default function Navbar() {
         style={{ height: '72px' }}
       >
         <nav className="section relative flex h-full items-center justify-between gap-4">
-          {isTenant && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.92 }}
-              transition={{ type: 'spring', stiffness: 450, damping: 22 }}
-              onClick={() => setTenantMenuOpen((prev) => !prev)}
-              className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-[#D5A348]/35 bg-white/5 text-white transition hover:bg-[#D5A348]/15 hover:border-[#D5A348]/60"
-              aria-label={tenantMenuOpen ? 'Close tenant menu' : 'Open tenant menu'}
-              aria-expanded={tenantMenuOpen}
-            >
-              <span className="relative block h-[18px] w-[18px]" aria-hidden="true">
-                <motion.span
-                  className="absolute left-[2px] right-[2px] top-[4px] h-[1.5px] rounded-full bg-current"
-                  animate={tenantMenuOpen ? { top: 8, rotate: 45 } : { top: 4, rotate: 0 }}
-                  transition={{ duration: 0.25, ease: LUXURY_EASE }}
-                />
-                <motion.span
-                  className="absolute left-[2px] right-[2px] top-[8px] h-[1.5px] rounded-full bg-current"
-                  animate={tenantMenuOpen ? { opacity: 0, scaleX: 0 } : { opacity: 1, scaleX: 1 }}
-                  transition={{ duration: 0.2, ease: LUXURY_EASE }}
-                />
-                <motion.span
-                  className="absolute left-[2px] right-[2px] top-[12px] h-[1.5px] rounded-full bg-current"
-                  animate={tenantMenuOpen ? { top: 8, rotate: -45 } : { top: 12, rotate: 0 }}
-                  transition={{ duration: 0.25, ease: LUXURY_EASE }}
-                />
-              </span>
-            </motion.button>
-          )}
-
           {/* Left Branding: R&E Crown Emblem + Vertical Gold Divider + Rent Ease Branding Image */}
           <motion.div
             className="flex items-center"
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.2, ease: LUXURY_EASE }}
           >
-            <BrandLogo tone="inverse" size="navbar" className={isTenant ? 'ml-10 sm:ml-12' : ''} />
+            <BrandLogo tone="inverse" size="navbar" />
           </motion.div>
 
           {/* Navigation Links: Home, Properties, Features, About, Help */}
@@ -184,7 +223,7 @@ export default function Navbar() {
                 </span>
               </NavItem>
             )}
-            {user?.role === 'landlord' && (
+            {isLandlord && (
               <NavItem to="/landlord/add-property">List Property</NavItem>
             )}
             {user && (
@@ -201,14 +240,14 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Right Side: Theme Toggle, Login, Gold Get Started Button */}
+          {/* Right Side Desktop: Theme Toggle, Profile, Login / Logout */}
           <div className="hidden items-center gap-3 lg:flex">
             <DarkModeToggle className="navbar-theme-toggle" />
             {user ? (
               <>
                 <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                   <Link
-                    to={user.role === 'admin' ? '/admin' : user.role === 'landlord' ? '/landlord/profile' : '/tenant/profile'}
+                    to={isAdmin ? '/admin' : isLandlord ? '/landlord/profile' : '/tenant/profile'}
                     className="navbar-account inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium text-white transition hover:bg-white/10"
                   >
                     <FiUser size={14} /> Profile
@@ -242,9 +281,9 @@ export default function Navbar() {
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.92 }}
               transition={{ type: 'spring', stiffness: 450, damping: 22 }}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-white hover:bg-white/10 transition focus:outline-none"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl text-white hover:bg-white/10 transition focus:outline-none focus:ring-2 focus:ring-[#D5A348]/40"
               onClick={() => setOpen((prev) => !prev)}
-              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-label={open ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={open}
             >
               <span className="relative block h-[18px] w-[18px]" aria-hidden="true">
@@ -268,121 +307,189 @@ export default function Navbar() {
           </div>
         </nav>
 
+        {/* Mobile Navigation Drawer */}
         <AnimatePresence>
           {open && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.24 }}
-              className="fixed inset-x-0 bottom-0 top-[72px] z-50 bg-black/55 backdrop-blur-sm lg:hidden"
-              onClick={() => setOpen(false)}
-            >
+            <div className="fixed inset-0 z-[115] lg:hidden">
+              {/* Backdrop */}
               <motion.div
-                initial={{ x: '100%', opacity: 0.8 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: '100%', opacity: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setOpen(false)}
+                aria-hidden="true"
+              />
+
+              {/* Drawer Content */}
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
                 transition={SMOOTH_SPRING}
-                className="ml-auto flex h-full w-72 max-w-[85vw] flex-col gap-6 bg-[#0D1929]/95 backdrop-blur-xl p-6 shadow-2xl overflow-y-auto border-l border-[#D5A348]/20"
+                className="fixed inset-y-0 right-0 z-[120] flex h-full w-72 max-w-[85vw] flex-col bg-[#0D1929]/95 backdrop-blur-2xl p-5 shadow-2xl border-l border-[#D5A348]/20 overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Navigation Menu"
               >
+                {/* Header */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <span className="font-display text-lg font-bold text-white">Menu</span>
+                  <span className="font-display text-base font-bold text-white tracking-wide">Menu</span>
                   <motion.button
                     whileHover={{ scale: 1.12, rotate: 90 }}
                     whileTap={{ scale: 0.9 }}
                     transition={{ type: 'spring', stiffness: 450, damping: 20 }}
                     onClick={() => setOpen(false)}
-                    className="text-white p-1 rounded-lg hover:bg-white/10"
-                    aria-label="Close menu"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white hover:bg-white/10 transition"
+                    aria-label="Close navigation menu"
                   >
                     <FiX size={20} />
                   </motion.button>
                 </div>
 
-                <motion.nav
+                {/* Logged in User Card */}
+                {user && (
+                  <div className="my-4 rounded-xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#D5A348]/20 text-[#D5A348] font-bold text-sm">
+                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-white">{user.name || 'User'}</p>
+                        <span className="inline-block rounded bg-[#D5A348]/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#D5A348]">
+                          {user.role}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Nav Items Container */}
+                <motion.div
                   variants={menuContainerVariants}
                   initial="hidden"
                   animate="visible"
-                  className="flex flex-col gap-2"
+                  className="flex flex-col gap-4 py-2"
                 >
-                  <motion.div variants={menuItemVariants}>
-                    <NavItem to="/" end onClick={() => setOpen(false)}>Home</NavItem>
-                  </motion.div>
-                  <motion.div variants={menuItemVariants}>
-                    <NavItem to="/search" onClick={() => setOpen(false)}>Properties</NavItem>
-                  </motion.div>
-                  <motion.div variants={menuItemVariants}>
-                    <NavItem to="/features" onClick={() => setOpen(false)}>Features</NavItem>
-                  </motion.div>
-                  <motion.div variants={menuItemVariants}>
+                  {/* Role Specific Section */}
+                  {user && (
+                    <motion.div variants={menuItemVariants} className="space-y-1">
+                      <p className="px-3 text-[11px] font-bold uppercase tracking-widest text-[#D5A348]/80">
+                        {isAdmin ? 'Admin' : isLandlord ? 'Landlord' : 'Tenant'} Actions
+                      </p>
+
+                      {/* Tenant Links */}
+                      {isTenant && (
+                        <>
+                          <MobileNavLink to="/tenant/wishlist" icon={FiHeart} onClick={() => setOpen(false)}>
+                            Wishlist
+                          </MobileNavLink>
+                          <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
+                            Messages
+                          </MobileNavLink>
+                          <MobileNavLink to="/tenant/profile" icon={FiUser} onClick={() => setOpen(false)}>
+                            Profile
+                          </MobileNavLink>
+                          <MobileNavLink to="/tenant/settings" icon={FiSettings} onClick={() => setOpen(false)}>
+                            Settings
+                          </MobileNavLink>
+                        </>
+                      )}
+
+                      {/* Landlord Links */}
+                      {isLandlord && (
+                        <>
+                          <MobileNavLink to="/landlord/dashboard" end icon={FiGrid} onClick={() => setOpen(false)}>
+                            Dashboard
+                          </MobileNavLink>
+                          <MobileNavLink to="/landlord/add-property" icon={FiPlus} onClick={() => setOpen(false)}>
+                            Add Property
+                          </MobileNavLink>
+                          <MobileNavLink to="/landlord/posted-properties" icon={FiList} onClick={() => setOpen(false)}>
+                            Posted Properties
+                          </MobileNavLink>
+                          <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
+                            Messages
+                          </MobileNavLink>
+                          <MobileNavLink to="/landlord/reports" icon={FiBarChart2} onClick={() => setOpen(false)}>
+                            Reports
+                          </MobileNavLink>
+                          <MobileNavLink to="/landlord/profile" icon={FiUser} onClick={() => setOpen(false)}>
+                            Profile
+                          </MobileNavLink>
+                          <MobileNavLink to="/landlord/settings" icon={FiSettings} onClick={() => setOpen(false)}>
+                            Settings
+                          </MobileNavLink>
+                        </>
+                      )}
+
+                      {/* Admin Links */}
+                      {isAdmin && (
+                        <>
+                          <MobileNavLink to="/admin" icon={FiShield} onClick={() => setOpen(false)}>
+                            Admin Dashboard
+                          </MobileNavLink>
+                          <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
+                            Messages
+                          </MobileNavLink>
+                        </>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Public Exploration Section */}
+                  <motion.div variants={menuItemVariants} className="space-y-1">
+                    <p className="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                      Explore
+                    </p>
+                    <MobileNavLink to="/" end icon={FiHome} onClick={() => setOpen(false)}>
+                      Home
+                    </MobileNavLink>
+                    <MobileNavLink to="/search" icon={FiSearch} onClick={() => setOpen(false)}>
+                      Properties
+                    </MobileNavLink>
+                    <MobileNavLink to="/features" icon={BiBuildingHouse} onClick={() => setOpen(false)}>
+                      Features
+                    </MobileNavLink>
                     <button
                       type="button"
                       onClick={() => {
                         openModal('about');
                         setOpen(false);
                       }}
-                      className="w-full px-3 py-1.5 text-left text-sm font-medium tracking-wide text-slate-200/85 hover:text-white transition-colors"
+                      className="flex min-h-[44px] w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-slate-200 transition-all hover:bg-white/10 hover:text-white"
                     >
-                      About
+                      <span className="flex items-center gap-3">
+                        <FiInfo size={17} className="flex-shrink-0 text-[#D5A348]" />
+                        <span>About</span>
+                      </span>
+                      <FiChevronRight size={14} className="opacity-50" />
                     </button>
+                    <MobileNavLink to="/help" icon={FiHelpCircle} onClick={() => setOpen(false)}>
+                      Help
+                    </MobileNavLink>
                   </motion.div>
-                  <motion.div variants={menuItemVariants}>
-                    <NavItem to="/help" onClick={() => setOpen(false)}>Help</NavItem>
-                  </motion.div>
-                  {isTenant && (
-                    <motion.div variants={menuItemVariants}>
-                      <NavItem to="/tenant/wishlist" onClick={() => setOpen(false)}>
-                        <span className="inline-flex items-center gap-1.5">
-                          <FiHeart size={14} /> Wishlist
-                        </span>
-                      </NavItem>
-                    </motion.div>
-                  )}
-                  {user?.role === 'landlord' && (
-                    <motion.div variants={menuItemVariants}>
-                      <NavItem to="/landlord/add-property" onClick={() => setOpen(false)}>List Property</NavItem>
-                    </motion.div>
-                  )}
-                  {user && (
-                    <motion.div variants={menuItemVariants}>
-                      <NavItem to="/messages" onClick={() => setOpen(false)}>
-                        <span className="inline-flex items-center gap-1.5">
-                          <FiMessageSquare size={14} /> Messages
-                          {unreadChatCount > 0 && (
-                            <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
-                              {unreadChatCount > 9 ? '9+' : unreadChatCount}
-                            </span>
-                          )}
-                        </span>
-                      </NavItem>
-                    </motion.div>
-                  )}
-                </motion.nav>
+                </motion.div>
 
+                {/* Bottom Actions */}
                 <div className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-4">
-                  <DarkModeToggle className="navbar-theme-toggle self-start" />
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-xs text-slate-300">Theme</span>
+                    <DarkModeToggle className="navbar-theme-toggle" />
+                  </div>
+
                   {user ? (
-                    <>
-                      <motion.div whileTap={{ scale: 0.97 }}>
-                        <Link
-                          to={user.role === 'admin' ? '/admin' : user.role === 'landlord' ? '/landlord/profile' : '/tenant/profile'}
-                          className="btn-outline text-center w-full block"
-                          onClick={() => setOpen(false)}
-                        >
-                          Profile
-                        </Link>
-                      </motion.div>
-                      <motion.button
-                        whileTap={{ scale: 0.97 }}
-                        onClick={handleLogout}
-                        className="navbar-logout btn-outline w-full"
-                      >
-                        Logout
-                      </motion.button>
-                    </>
+                    <motion.button
+                      whileTap={{ scale: 0.97 }}
+                      onClick={handleLogout}
+                      className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 px-3.5 py-2.5 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/10"
+                    >
+                      <FiLogOut size={16} /> Logout
+                    </motion.button>
                   ) : (
-                    <>
+                    <div className="space-y-2">
                       <LiquidButton
                         to="/login"
                         variant="sapphire"
@@ -401,117 +508,14 @@ export default function Navbar() {
                       >
                         Get Started
                       </LiquidButton>
-                    </>
+                    </div>
                   )}
                 </div>
               </motion.div>
-            </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </motion.header>
-
-      <AnimatePresence>
-        {isTenant && tenantMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.24 }}
-              className="fixed inset-x-0 bottom-0 top-[72px] z-40 bg-black/45 backdrop-blur-xs"
-              onClick={closeTenantMenu}
-            />
-            <motion.aside
-              initial={{ x: '-100%', opacity: 0.8 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: '-100%', opacity: 0 }}
-              transition={SMOOTH_SPRING}
-              className="fixed left-0 top-[72px] z-50 flex h-[calc(100vh-72px)] w-72 max-w-[85vw] flex-col bg-white/95 dark:bg-[#0D1929]/95 backdrop-blur-xl p-5 shadow-2xl overflow-y-auto border-r border-[#14263D]/10 dark:border-[#D5A348]/20"
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <BrandLogo tone="default" size="sidebar" />
-                <motion.button
-                  whileHover={{ scale: 1.12, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 450, damping: 20 }}
-                  onClick={closeTenantMenu}
-                  className="rounded-full p-2 text-ink/50 hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/5"
-                  aria-label="Close tenant menu"
-                >
-                  <FiX size={18} />
-                </motion.button>
-              </div>
-
-              <div className="mb-5 border-b border-black/5 pb-4 dark:border-white/5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/40 dark:text-slate-500">Tenant Panel</p>
-              </div>
-
-              <motion.nav
-                variants={menuContainerVariants}
-                initial="hidden"
-                animate="visible"
-                className="space-y-2"
-              >
-                <motion.div variants={menuItemVariants}>
-                  <motion.button
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 24 }}
-                    onClick={() => { navigate('/messages'); closeTenantMenu(); }}
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-medium text-ink/70 transition hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/5"
-                  >
-                    <span className="flex items-center gap-3">
-                      <FiMessageSquare size={16} /> Messages
-                      {unreadChatCount > 0 && (
-                        <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm">
-                          {unreadChatCount > 9 ? '9+' : unreadChatCount}
-                        </span>
-                      )}
-                    </span>
-                    <FiChevronRight size={14} />
-                  </motion.button>
-                </motion.div>
-                <motion.div variants={menuItemVariants}>
-                  <motion.button
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 24 }}
-                    onClick={() => { navigate('/tenant/profile'); closeTenantMenu(); }}
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-medium text-ink/70 transition hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/5"
-                  >
-                    <span className="flex items-center gap-3"><FiUser size={16} /> Profile</span>
-                    <FiChevronRight size={14} />
-                  </motion.button>
-                </motion.div>
-                <motion.div variants={menuItemVariants}>
-                  <motion.button
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 24 }}
-                    onClick={() => { navigate('/tenant/settings'); closeTenantMenu(); }}
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-medium text-ink/70 transition hover:bg-black/5 dark:text-slate-300 dark:hover:bg-white/5"
-                  >
-                    <span className="flex items-center gap-3"><FiSettings size={16} /> Settings</span>
-                    <FiChevronRight size={14} />
-                  </motion.button>
-                </motion.div>
-                <motion.div variants={menuItemVariants}>
-                  <motion.button
-                    whileHover={{ x: 4 }}
-                    whileTap={{ scale: 0.98 }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 24 }}
-                    onClick={handleLogout}
-                    className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-sm font-medium text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
-                  >
-                    <span className="flex items-center gap-3"><FiLogOut size={16} /> Logout</span>
-                    <FiChevronRight size={14} />
-                  </motion.button>
-                </motion.div>
-              </motion.nav>
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
     </>
   );
 }

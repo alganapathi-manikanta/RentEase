@@ -10,10 +10,18 @@ export async function sendPasswordResetEmail({ to, name, resetUrl, expiresInMinu
   const port = parseInt(process.env.EMAIL_PORT, 10) || 587;
   const user = process.env.EMAIL_USER;
   const pass = process.env.EMAIL_PASSWORD;
-  const from = process.env.EMAIL_FROM || '"Rent Ease" <no-reply@rentease.com>';
+  const rawFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM || '';
   const resendApiKey = process.env.RESEND_API_KEY;
   const brevoApiKey = process.env.BREVO_API_KEY;
   const isDev = process.env.NODE_ENV !== 'production';
+
+  // For Resend: if no custom verified from-address is provided, use Resend's default sender domain
+  const resendFrom = rawFrom && !rawFrom.includes('@rentease.com')
+    ? (rawFrom.includes('<') ? rawFrom : `"Rent Ease" <${rawFrom}>`)
+    : '"Rent Ease" <onboarding@resend.dev>';
+
+  // Standard from-address for SMTP and Brevo
+  const from = rawFrom || '"Rent Ease" <no-reply@rentease.com>';
 
   const textContent = `Hello ${name || 'User'},
 
@@ -77,7 +85,7 @@ The Rent Ease Team`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: from.includes('<') ? from : `"Rent Ease" <${from}>`,
+          from: resendFrom,
           to: [to],
           subject: 'Reset your Rent Ease password',
           html: htmlContent,
@@ -232,5 +240,40 @@ The Rent Ease Team`;
     delivered: false,
     provider: 'none',
     error: 'No email delivery provider is configured in production (RESEND_API_KEY, BREVO_API_KEY, or SMTP credentials missing).',
+  };
+}
+
+/**
+ * Returns safe diagnostic information about the configured email provider.
+ * NEVER leaks passwords, API keys, or raw tokens.
+ */
+export function getEmailServiceStatus() {
+  const hasResend = Boolean(process.env.RESEND_API_KEY?.trim());
+  const hasBrevo = Boolean(process.env.BREVO_API_KEY?.trim());
+  const hasSmtp = Boolean(
+    process.env.EMAIL_HOST?.trim() &&
+    process.env.EMAIL_USER?.trim() &&
+    process.env.EMAIL_PASSWORD?.trim()
+  );
+
+  let activeProvider = 'none';
+  if (hasResend) activeProvider = 'resend';
+  else if (hasBrevo) activeProvider = 'brevo';
+  else if (hasSmtp) activeProvider = 'smtp';
+  else if (process.env.NODE_ENV !== 'production') activeProvider = 'dev-console';
+
+  const rawFrom = process.env.EMAIL_FROM || process.env.RESEND_FROM || '';
+  const maskedSender = rawFrom
+    ? rawFrom.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+    : (hasResend ? 'onboarding@resend.dev (default)' : 'not configured');
+
+  return {
+    configured: activeProvider !== 'none',
+    activeProvider,
+    hasResendKey: hasResend,
+    hasBrevoKey: hasBrevo,
+    hasSmtpConfig: hasSmtp,
+    senderAddress: maskedSender,
+    environment: process.env.NODE_ENV || 'development',
   };
 }

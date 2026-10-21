@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import { generateToken } from '../utils/generateToken.js';
-import { sendPasswordResetEmail } from '../utils/emailService.js';
+import { sendPasswordResetEmail, getEmailServiceStatus } from '../utils/emailService.js';
 
 const publicUser = (user) => ({
   id: user._id,
@@ -228,7 +228,7 @@ export const forgotPassword = async (req, res) => {
       clientBase = (req.headers.origin || 'http://localhost:5173').replace(/\/$/, '');
     } else {
       console.warn('[AUTH WARNING] Neither FRONTEND_URL nor CLIENT_URL is configured in production. Falling back to default production frontend URL.');
-      clientBase = 'https://rent-ease-frontend.vercel.app';
+      clientBase = 'https://rentease-realestate.vercel.app';
     }
     const resetUrl = `${clientBase}/reset-password/${rawToken}`;
 
@@ -345,5 +345,14 @@ export const resetPassword = async (req, res) => {
   } catch (error) {
     console.error('Error in resetPassword:', error);
     res.status(500).json({ success: false, message: 'Failed to reset password. Please try again.' });
+  }
+};
+
+export const getEmailStatus = async (req, res) => {
+  try {
+    const status = getEmailServiceStatus();
+    res.status(200).json({ success: true, emailService: status });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to inspect email service status.' });
   }
 };

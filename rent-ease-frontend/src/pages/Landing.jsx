@@ -265,8 +265,8 @@ export default function Landing() {
           </motion.button>
         </motion.div>
 
-        {/* Server waking indicator for cold-starts */}
-        {isWakingServer && propertiesLoading && (
+        {/* Server waking indicator for cold-starts when no cached listings exist */}
+        {isWakingServer && propertiesLoading && featured.length === 0 && (
           <div className="mb-6 flex items-center justify-center gap-2.5 rounded-2xl border border-[#d4a84f]/30 bg-[#d4a84f]/10 p-3 text-xs font-medium text-[#b98a3c] dark:text-[#ddbb72] animate-pulse">
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <span>Connecting to cloud server... Verified property listings will appear momentarily.</span>

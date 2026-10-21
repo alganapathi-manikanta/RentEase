@@ -6,6 +6,7 @@ import {
   forgotPassword,
   validateResetToken,
   resetPassword,
+  getEmailStatus,
 } from '../controllers/authController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -15,6 +16,7 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/me', protect, getCurrentUser);
 router.post('/logout', (req, res) => res.status(200).json({ message: 'Logged out successfully.' }));
+router.get('/email-service-status', getEmailStatus);
 router.post('/forgot-password', forgotPassword);
 router.get('/reset-password/validate/:token', validateResetToken);
 router.post('/reset-password/:token', resetPassword);

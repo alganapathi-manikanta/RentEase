@@ -20,15 +20,16 @@ const mergeStoredProperties = (storedProperties) => {
   return [...seedProperties, ...customProperties];
 };
 
-const CACHE_KEY = 'rentease_cached_properties_v1';
+const CACHE_KEY = 'rentease_cached_properties_v2';
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+const SWR_STALE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days SWR window for instant render
 
 const getInitialCachedProperties = () => {
   try {
-    const cached = sessionStorage.getItem(CACHE_KEY);
-    if (cached) {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Array.isArray(data) && data.length > 0 && Date.now() - timestamp < CACHE_TTL_MS * 5) {
+    const raw = localStorage.getItem(CACHE_KEY) || sessionStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const { data, timestamp } = JSON.parse(raw);
+      if (Array.isArray(data) && data.length > 0 && Date.now() - timestamp < SWR_STALE_MS) {
         return data;
       }
     }
@@ -81,11 +82,13 @@ export function AppDataProvider({ children }) {
     }
     setPropertiesError('');
 
-    // Timer to detect cold-start latency (e.g. Render waking from inactivity)
+    // Timer to detect cold-start latency only if no properties are currently displayed
     if (wakingTimerRef.current) clearTimeout(wakingTimerRef.current);
-    wakingTimerRef.current = setTimeout(() => {
-      setIsWakingServer(true);
-    }, 3200);
+    if (properties.length === 0) {
+      wakingTimerRef.current = setTimeout(() => {
+        setIsWakingServer(true);
+      }, 2500);
+    }
 
     const requestPromise = (async () => {
       try {
@@ -108,9 +111,11 @@ export function AppDataProvider({ children }) {
         lastFetchTime.current = Date.now();
         setPropertiesError('');
 
-        // Cache in sessionStorage for fast back/forward navigation and reloads
+        // Cache in both localStorage (for SWR across tabs/reloads) and sessionStorage
         try {
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: unique, timestamp: Date.now() }));
+          const payload = JSON.stringify({ data: unique, timestamp: Date.now() });
+          localStorage.setItem(CACHE_KEY, payload);
+          sessionStorage.setItem(CACHE_KEY, payload);
         } catch (_) {}
 
         return unique;
@@ -126,9 +131,12 @@ export function AppDataProvider({ children }) {
           ? 'Cloud server is waking up. Please retry in a few moments.'
           : 'Unable to load properties right now. Please check your connection and retry.';
 
-        setPropertiesError(errMsg);
-        // Fallback to existing properties or seed properties so user is never stranded
-        setProperties((current) => (current.length > 0 ? current : seedProperties));
+        if (properties.length === 0) {
+          setPropertiesError(errMsg);
+          setProperties((current) => (current.length > 0 ? current : seedProperties));
+        } else {
+          console.warn('[PROPERTIES SWR] Background revalidation failed, preserving cached listings:', err.message);
+        }
         return [];
       } finally {
         if (wakingTimerRef.current) clearTimeout(wakingTimerRef.current);
@@ -193,7 +201,9 @@ export function AppDataProvider({ children }) {
 
   const updateSessionCache = (updatedProperties) => {
     try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: updatedProperties, timestamp: Date.now() }));
+      const payload = JSON.stringify({ data: updatedProperties, timestamp: Date.now() });
+      localStorage.setItem(CACHE_KEY, payload);
+      sessionStorage.setItem(CACHE_KEY, payload);
     } catch (_) {}
   };
 

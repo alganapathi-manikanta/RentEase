@@ -297,11 +297,12 @@ export const getProperties = async (req, res) => {
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
 
     const properties = await Property.find(filter)
-      .select('-canonicalLayout -threeDConfig.canonicalLayout -floorPlan.layout -floorPlan.roomPlacements')
+      .select('-threeDConfig -canonicalLayout -floorPlan.layout -floorPlan.roomPlacements -description -landDetails -saleDetails.documents')
       .populate('ownerId', 'name email phone')
       .sort({ createdAt: -1 })
       .lean();
     const normalizedList = properties.map((doc) => normalizeProperty(doc));
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     res.status(200).json({ success: true, data: normalizedList });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -356,11 +357,12 @@ export const incrementPropertyViews = async (req, res) => {
 export const getMyProperties = async (req, res) => {
   try {
     const properties = await Property.find({ ownerId: req.user._id })
-      .select('-canonicalLayout -threeDConfig.canonicalLayout -floorPlan.layout -floorPlan.roomPlacements')
+      .select('-threeDConfig -canonicalLayout -floorPlan.layout -floorPlan.roomPlacements -description -landDetails -saleDetails.documents')
       .populate('ownerId', 'name email phone')
       .sort({ createdAt: -1 })
       .lean();
     const normalizedList = properties.map((doc) => normalizeProperty(doc));
+    res.setHeader('Cache-Control', 'private, no-cache');
     res.status(200).json({ success: true, data: normalizedList });
   } catch (error) {
     res.status(500).json({ message: error.message });
