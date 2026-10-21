@@ -69,3 +69,26 @@ export function getListingTitlePlaceholder(propertyType = '', listingType = '') 
 export function getSizeLabel(propertyType = '') {
   return isPlotOrLandType(propertyType) ? 'Plot area (sq. ft.)' : 'Property size (sq. ft.)';
 }
+
+/**
+ * Safely determines if a given user owns the specified property.
+ * Handles populated objects, raw ObjectIds, and id/_id normalization.
+ *
+ * @param {object} property
+ * @param {object} user
+ * @returns {boolean}
+ */
+export function isPropertyOwner(property, user) {
+  if (!property || !user) return false;
+  const currentUserId = String(user.id || user._id || '');
+  if (!currentUserId) return false;
+  const propOwnerId = String(
+    property.ownerId?._id ||
+    property.ownerId?.id ||
+    property.ownerId ||
+    property.landlord?.id ||
+    property.landlord?._id ||
+    ''
+  );
+  return propOwnerId === currentUserId;
+}

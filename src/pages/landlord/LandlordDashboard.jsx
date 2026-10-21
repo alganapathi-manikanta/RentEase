@@ -5,13 +5,14 @@ import { FiHome, FiEye, FiUsers, FiDollarSign, FiPlus, FiArrowRight } from 'reac
 import { useAuth } from '../../context/AuthContext';
 import { useAppData } from '../../context/AppDataContext';
 import { getPropertyPricing } from '../../utils/propertyPricing';
+import { isPropertyOwner } from '../../utils/propertyFormHelpers';
 import { LUXURY_EASE } from '../../utils/motionVariants';
 
 export default function LandlordDashboard() {
   const { user } = useAuth();
   const { properties } = useAppData();
   const shouldReduceMotion = useReducedMotion();
-  const myProperties = useMemo(() => properties.filter((p) => p.ownerId === user?.id), [properties, user]);
+  const myProperties = useMemo(() => properties.filter((p) => isPropertyOwner(p, user)), [properties, user]);
 
   const activeProperties = myProperties.filter((p) => p.isPublished !== false);
   const rentProperties = myProperties.filter((p) => {

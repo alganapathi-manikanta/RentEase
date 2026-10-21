@@ -366,7 +366,7 @@ export default function ExpenseCalculator() {
   }, [roomAreas]);
 
   // Loading state
-  const isInitialLoading = (directLoading || (propertiesLoading && !propertyFromList)) && !property;
+  const isInitialLoading = fetchStatus !== 'not_found' && fetchStatus !== 'error' && (directLoading || (propertiesLoading && !propertyFromList)) && !property;
   if (isInitialLoading) {
     return (
       <div className="section flex min-h-[60vh] flex-col items-center justify-center gap-4 py-16 text-center">

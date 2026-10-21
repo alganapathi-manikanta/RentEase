@@ -2,13 +2,14 @@ import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
+import { isPropertyOwner } from '../../utils/propertyFormHelpers';
 
 const COLORS = ['#14263D', '#D5A348', '#10B981', '#4678C8', '#F97316'];
 
 export default function Reports() {
   const { user } = useAuth();
   const { properties } = useAppData();
-  const myProperties = useMemo(() => properties.filter((p) => p.ownerId === user?.id), [properties, user]);
+  const myProperties = useMemo(() => properties.filter((p) => isPropertyOwner(p, user)), [properties, user]);
 
   const viewsData = myProperties.map((p) => ({ name: p.title.slice(0, 14), views: p.views, interested: p.interested }));
   const typeBreakdown = useMemo(() => {

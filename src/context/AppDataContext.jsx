@@ -247,8 +247,9 @@ export function AppDataProvider({ children }) {
       return updated;
     }
     if (isSeedProperty(id)) return;
-    const currentUserId = JSON.parse(localStorage.getItem('rentease_user') || 'null')?.id;
-    persistProperties(properties.map((p) => (p.id === id && p.ownerId === currentUserId ? { ...p, ...updates } : p)));
+    const parsedUser = JSON.parse(localStorage.getItem('rentease_user') || 'null');
+    const currentUserId = parsedUser?.id || parsedUser?._id;
+    persistProperties(properties.map((p) => (p.id === id && (p.ownerId === currentUserId || p.ownerId?._id === currentUserId) ? { ...p, ...updates } : p)));
   };
 
   const deleteProperty = async (id) => {
@@ -262,8 +263,9 @@ export function AppDataProvider({ children }) {
       return;
     }
     if (isSeedProperty(id)) return;
-    const currentUserId = JSON.parse(localStorage.getItem('rentease_user') || 'null')?.id;
-    persistProperties(properties.filter((p) => p.id !== id || p.ownerId !== currentUserId));
+    const parsedUser = JSON.parse(localStorage.getItem('rentease_user') || 'null');
+    const currentUserId = parsedUser?.id || parsedUser?._id;
+    persistProperties(properties.filter((p) => p.id !== id || (p.ownerId !== currentUserId && p.ownerId?._id !== currentUserId)));
     const nextFavs = favorites.filter((favoriteId) => favoriteId !== String(id));
     setFavorites(nextFavs);
     if (user?.role === 'tenant') {
@@ -280,9 +282,10 @@ export function AppDataProvider({ children }) {
       return;
     }
     if (isSeedProperty(id)) return;
-    const currentUserId = JSON.parse(localStorage.getItem('rentease_user') || 'null')?.id;
+    const parsedUser = JSON.parse(localStorage.getItem('rentease_user') || 'null');
+    const currentUserId = parsedUser?.id || parsedUser?._id;
     persistProperties(
-      properties.map((p) => (p.id === id && p.ownerId === currentUserId ? { ...p, isPublished: p.isPublished === false } : p))
+      properties.map((p) => (p.id === id && (p.ownerId === currentUserId || p.ownerId?._id === currentUserId) ? { ...p, isPublished: p.isPublished === false } : p))
     );
   };
 
