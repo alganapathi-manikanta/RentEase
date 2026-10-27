@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
@@ -34,7 +35,13 @@ export default function DashboardLayout({ links = [], title, children }) {
           <Sidebar links={links} title={title} />
           <div className="flex-1 min-w-0">
             <PageTransition className="p-4 sm:p-6 lg:p-8">
-              {children || <Outlet />}
+              <Suspense fallback={
+                <div className="flex min-h-[50vh] items-center justify-center p-8">
+                  <div className="h-9 w-9 animate-spin rounded-full border-3 border-primary border-t-transparent" />
+                </div>
+              }>
+                {children || <Outlet />}
+              </Suspense>
             </PageTransition>
           </div>
         </div>

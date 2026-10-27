@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { FiGrid, FiSearch, FiHeart, FiUser, FiPlus, FiList, FiBarChart2, FiSettings, FiMessageSquare } from 'react-icons/fi';
 
@@ -11,32 +11,36 @@ import { InfoModalProvider } from './context/InfoModalContext';
 import InfoModalOverlay from './components/InfoModalOverlay';
 import WebsiteIntro from './components/WebsiteIntro';
 
+// Eagerly loaded core routes for instantaneous initial render
 import Landing from './pages/Landing';
-import Features from './pages/Features';
-import Help from './pages/Help';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
 import SearchProperties from './pages/SearchProperties';
-import PropertyDetails from './pages/PropertyDetails';
-import ExpenseCalculator from './pages/ExpenseCalculator';
-import ChatInbox from './pages/ChatInbox';
-import Profile from './pages/Profile';
-import Settings from './pages/Settings';
-import NotFound from './pages/NotFound';
-import AboutUs from './pages/AboutUs';
-import Careers from './pages/Careers';
-import PrivacyPolicy from './pages/PrivacyPolicy';
 
-import Favorites from './pages/tenant/Favorites';
+// Code-split pages to optimize initial bundle and route performance
+const Features = lazy(() => import('./pages/Features'));
+const Help = lazy(() => import('./pages/Help'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
+const ExpenseCalculator = lazy(() => import('./pages/ExpenseCalculator'));
+const ChatInbox = lazy(() => import('./pages/ChatInbox'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Settings = lazy(() => import('./pages/Settings'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
-import LandlordDashboard from './pages/landlord/LandlordDashboard';
-import AddProperty from './pages/landlord/AddProperty';
-import EditProperty from './pages/landlord/EditProperty';
-import ManageProperties from './pages/landlord/ManageProperties';
-import Reports from './pages/landlord/Reports';
-import AdminDashboard from './pages/admin/AdminDashboard';
+// Tenant pages
+const Favorites = lazy(() => import('./pages/tenant/Favorites'));
+
+// Landlord pages
+const LandlordDashboard = lazy(() => import('./pages/landlord/LandlordDashboard'));
+const AddProperty = lazy(() => import('./pages/landlord/AddProperty'));
+const EditProperty = lazy(() => import('./pages/landlord/EditProperty'));
+const ManageProperties = lazy(() => import('./pages/landlord/ManageProperties'));
+const Reports = lazy(() => import('./pages/landlord/Reports'));
+
+// Admin pages
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 
 import { useAuth } from './context/AuthContext';
 
@@ -58,12 +62,25 @@ const landlordLinks = [
   { to: '/landlord/settings', label: 'Settings', icon: FiSettings },
 ];
 
+function PageLoader() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-8" role="status" aria-label="Loading page content">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent shadow-sm" />
+        <span className="text-xs font-medium text-ink/60 dark:text-slate-400">Loading Rent Ease...</span>
+      </div>
+    </div>
+  );
+}
+
 function PublicLayout({ children }) {
   return (
     <>
       <Navbar />
       <PageTransition className="min-h-[70vh] relative z-0 pt-[72px]">
-        {children}
+        <Suspense fallback={<PageLoader />}>
+          {children}
+        </Suspense>
       </PageTransition>
       <Footer />
     </>
@@ -96,7 +113,8 @@ export default function App() {
       <ScrollToTop />
       <InfoModalOverlay />
       <WebsiteIntro />
-      <Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
       {/* Public routes */}
       <Route path="/" element={<PublicLayout><Landing /></PublicLayout>} />
       <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
@@ -227,6 +245,7 @@ export default function App() {
 
       <Route path="*" element={<PublicLayout><NotFound /></PublicLayout>} />
     </Routes>
+    </Suspense>
     </InfoModalProvider>
   );
 }

@@ -203,10 +203,11 @@ const normalizeProperty = (data) => {
   const ownerPhone = (ownerUser && ownerUser.phone) || data.ownerPhone || '';
   const ownerName = (ownerUser && ownerUser.name) || data.ownerName || '';
 
+  const validId = (data._id && String(data._id).trim()) || (data.id && String(data.id).trim()) || null;
+
   const normalized = {
     ...data,
-    id: data._id ? String(data._id) : (data.id || ''),
-    _id: data._id ? String(data._id) : (data.id || ''),
+    ...(validId ? { id: String(validId), _id: String(validId) } : {}),
     type,
     propertyType: data.propertyType || type.toLowerCase(),
     listingType,
@@ -375,9 +376,13 @@ export const createProperty = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied. Only landlords can list properties.' });
     }
 
-    const { ownerId, ownerName, ownerPhone, ...safePropertyData } = req.body;
+    const { ownerId, ownerName, ownerPhone, _id, id, ...safePropertyData } = req.body;
+    const normalized = normalizeProperty(safePropertyData);
+    delete normalized._id;
+    delete normalized.id;
+
     const propertyData = {
-      ...normalizeProperty(safePropertyData),
+      ...normalized,
       ownerId: req.user._id,
       ownerName: req.user.name,
       ownerPhone: req.user.phone,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
@@ -306,216 +307,220 @@ export default function Navbar() {
             </motion.button>
           </div>
         </nav>
-
-        {/* Mobile Navigation Drawer */}
-        <AnimatePresence>
-          {open && (
-            <div className="fixed inset-0 z-[115] lg:hidden">
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.22 }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-                onClick={() => setOpen(false)}
-                aria-hidden="true"
-              />
-
-              {/* Drawer Content */}
-              <motion.div
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={SMOOTH_SPRING}
-                className="fixed inset-y-0 right-0 z-[120] flex h-full w-72 max-w-[85vw] flex-col bg-[#0D1929]/95 backdrop-blur-2xl p-5 shadow-2xl border-l border-[#D5A348]/20 overflow-y-auto"
-                onClick={(e) => e.stopPropagation()}
-                role="dialog"
-                aria-modal="true"
-                aria-label="Navigation Menu"
-              >
-                {/* Header */}
-                <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                  <span className="font-display text-base font-bold text-white tracking-wide">Menu</span>
-                  <motion.button
-                    whileHover={{ scale: 1.12, rotate: 90 }}
-                    whileTap={{ scale: 0.9 }}
-                    transition={{ type: 'spring', stiffness: 450, damping: 20 }}
-                    onClick={() => setOpen(false)}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-white hover:bg-white/10 transition"
-                    aria-label="Close navigation menu"
-                  >
-                    <FiX size={20} />
-                  </motion.button>
-                </div>
-
-                {/* Logged in User Card */}
-                {user && (
-                  <div className="my-4 rounded-xl border border-white/10 bg-white/5 p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#D5A348]/20 text-[#D5A348] font-bold text-sm">
-                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-white">{user.name || 'User'}</p>
-                        <span className="inline-block rounded bg-[#D5A348]/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#D5A348]">
-                          {user.role}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Nav Items Container */}
-                <motion.div
-                  variants={menuContainerVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="flex flex-col gap-4 py-2"
-                >
-                  {/* Role Specific Section */}
-                  {user && (
-                    <motion.div variants={menuItemVariants} className="space-y-1">
-                      <p className="px-3 text-[11px] font-bold uppercase tracking-widest text-[#D5A348]/80">
-                        {isAdmin ? 'Admin' : isLandlord ? 'Landlord' : 'Tenant'} Actions
-                      </p>
-
-                      {/* Tenant Links */}
-                      {isTenant && (
-                        <>
-                          <MobileNavLink to="/tenant/wishlist" icon={FiHeart} onClick={() => setOpen(false)}>
-                            Wishlist
-                          </MobileNavLink>
-                          <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
-                            Messages
-                          </MobileNavLink>
-                          <MobileNavLink to="/tenant/profile" icon={FiUser} onClick={() => setOpen(false)}>
-                            Profile
-                          </MobileNavLink>
-                          <MobileNavLink to="/tenant/settings" icon={FiSettings} onClick={() => setOpen(false)}>
-                            Settings
-                          </MobileNavLink>
-                        </>
-                      )}
-
-                      {/* Landlord Links */}
-                      {isLandlord && (
-                        <>
-                          <MobileNavLink to="/landlord/dashboard" end icon={FiGrid} onClick={() => setOpen(false)}>
-                            Dashboard
-                          </MobileNavLink>
-                          <MobileNavLink to="/landlord/add-property" icon={FiPlus} onClick={() => setOpen(false)}>
-                            Add Property
-                          </MobileNavLink>
-                          <MobileNavLink to="/landlord/posted-properties" icon={FiList} onClick={() => setOpen(false)}>
-                            Posted Properties
-                          </MobileNavLink>
-                          <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
-                            Messages
-                          </MobileNavLink>
-                          <MobileNavLink to="/landlord/reports" icon={FiBarChart2} onClick={() => setOpen(false)}>
-                            Reports
-                          </MobileNavLink>
-                          <MobileNavLink to="/landlord/profile" icon={FiUser} onClick={() => setOpen(false)}>
-                            Profile
-                          </MobileNavLink>
-                          <MobileNavLink to="/landlord/settings" icon={FiSettings} onClick={() => setOpen(false)}>
-                            Settings
-                          </MobileNavLink>
-                        </>
-                      )}
-
-                      {/* Admin Links */}
-                      {isAdmin && (
-                        <>
-                          <MobileNavLink to="/admin" icon={FiShield} onClick={() => setOpen(false)}>
-                            Admin Dashboard
-                          </MobileNavLink>
-                          <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
-                            Messages
-                          </MobileNavLink>
-                        </>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {/* Public Exploration Section */}
-                  <motion.div variants={menuItemVariants} className="space-y-1">
-                    <p className="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                      Explore
-                    </p>
-                    <MobileNavLink to="/" end icon={FiHome} onClick={() => setOpen(false)}>
-                      Home
-                    </MobileNavLink>
-                    <MobileNavLink to="/search" icon={FiSearch} onClick={() => setOpen(false)}>
-                      Properties
-                    </MobileNavLink>
-                    <MobileNavLink to="/features" icon={BiBuildingHouse} onClick={() => setOpen(false)}>
-                      Features
-                    </MobileNavLink>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        openModal('about');
-                        setOpen(false);
-                      }}
-                      className="flex min-h-[44px] w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-slate-200 transition-all hover:bg-white/10 hover:text-white"
-                    >
-                      <span className="flex items-center gap-3">
-                        <FiInfo size={17} className="flex-shrink-0 text-[#D5A348]" />
-                        <span>About</span>
-                      </span>
-                      <FiChevronRight size={14} className="opacity-50" />
-                    </button>
-                    <MobileNavLink to="/help" icon={FiHelpCircle} onClick={() => setOpen(false)}>
-                      Help
-                    </MobileNavLink>
-                  </motion.div>
-                </motion.div>
-
-                {/* Bottom Actions */}
-                <div className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-4">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-xs text-slate-300">Theme</span>
-                    <DarkModeToggle className="navbar-theme-toggle" />
-                  </div>
-
-                  {user ? (
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={handleLogout}
-                      className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 px-3.5 py-2.5 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/10"
-                    >
-                      <FiLogOut size={16} /> Logout
-                    </motion.button>
-                  ) : (
-                    <div className="space-y-2">
-                      <LiquidButton
-                        to="/login"
-                        variant="sapphire"
-                        size="nav"
-                        className="w-full text-center"
-                        onClick={() => setOpen(false)}
-                      >
-                        Login
-                      </LiquidButton>
-                      <LiquidButton
-                        to="/register"
-                        variant="gold"
-                        size="nav"
-                        className="w-full text-center"
-                        onClick={() => setOpen(false)}
-                      >
-                        Get Started
-                      </LiquidButton>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
       </motion.header>
+
+      {/* Mobile Navigation Drawer - Rendered via Portal into document.body to escape transformed 72px header container */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <div className="fixed inset-0 z-[115] lg:hidden">
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.22 }}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                  onClick={() => setOpen(false)}
+                  aria-hidden="true"
+                />
+
+                {/* Drawer Content */}
+                <motion.div
+                  initial={{ x: '100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '100%' }}
+                  transition={SMOOTH_SPRING}
+                  className="fixed inset-y-0 right-0 z-[120] flex h-full w-72 max-w-[85vw] flex-col bg-[#0D1929]/95 backdrop-blur-2xl p-5 shadow-2xl border-l border-[#D5A348]/20 overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Navigation Menu"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <span className="font-display text-base font-bold text-white tracking-wide">Menu</span>
+                    <motion.button
+                      whileHover={{ scale: 1.12, rotate: 90 }}
+                      whileTap={{ scale: 0.9 }}
+                      transition={{ type: 'spring', stiffness: 450, damping: 20 }}
+                      onClick={() => setOpen(false)}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg text-white hover:bg-white/10 transition"
+                      aria-label="Close navigation menu"
+                    >
+                      <FiX size={20} />
+                    </motion.button>
+                  </div>
+
+                  {/* Logged in User Card */}
+                  {user && (
+                    <div className="my-4 rounded-xl border border-white/10 bg-white/5 p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#D5A348]/20 text-[#D5A348] font-bold text-sm">
+                          {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-white">{user.name || 'User'}</p>
+                          <span className="inline-block rounded bg-[#D5A348]/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#D5A348]">
+                            {user.role}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Nav Items Container */}
+                  <motion.div
+                    variants={menuContainerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className="flex flex-col gap-4 py-2"
+                  >
+                    {/* Role Specific Section */}
+                    {user && (
+                      <motion.div variants={menuItemVariants} className="space-y-1">
+                        <p className="px-3 text-[11px] font-bold uppercase tracking-widest text-[#D5A348]/80">
+                          {isAdmin ? 'Admin' : isLandlord ? 'Landlord' : 'Tenant'} Actions
+                        </p>
+
+                        {/* Tenant Links */}
+                        {isTenant && (
+                          <>
+                            <MobileNavLink to="/tenant/wishlist" icon={FiHeart} onClick={() => setOpen(false)}>
+                              Wishlist
+                            </MobileNavLink>
+                            <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
+                              Messages
+                            </MobileNavLink>
+                            <MobileNavLink to="/tenant/profile" icon={FiUser} onClick={() => setOpen(false)}>
+                              Profile
+                            </MobileNavLink>
+                            <MobileNavLink to="/tenant/settings" icon={FiSettings} onClick={() => setOpen(false)}>
+                              Settings
+                            </MobileNavLink>
+                          </>
+                        )}
+
+                        {/* Landlord Links */}
+                        {isLandlord && (
+                          <>
+                            <MobileNavLink to="/landlord/dashboard" end icon={FiGrid} onClick={() => setOpen(false)}>
+                              Dashboard
+                            </MobileNavLink>
+                            <MobileNavLink to="/landlord/add-property" icon={FiPlus} onClick={() => setOpen(false)}>
+                              Add Property
+                            </MobileNavLink>
+                            <MobileNavLink to="/landlord/posted-properties" icon={FiList} onClick={() => setOpen(false)}>
+                              Posted Properties
+                            </MobileNavLink>
+                            <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
+                              Messages
+                            </MobileNavLink>
+                            <MobileNavLink to="/landlord/reports" icon={FiBarChart2} onClick={() => setOpen(false)}>
+                              Reports
+                            </MobileNavLink>
+                            <MobileNavLink to="/landlord/profile" icon={FiUser} onClick={() => setOpen(false)}>
+                              Profile
+                            </MobileNavLink>
+                            <MobileNavLink to="/landlord/settings" icon={FiSettings} onClick={() => setOpen(false)}>
+                              Settings
+                            </MobileNavLink>
+                          </>
+                        )}
+
+                        {/* Admin Links */}
+                        {isAdmin && (
+                          <>
+                            <MobileNavLink to="/admin" icon={FiShield} onClick={() => setOpen(false)}>
+                              Admin Dashboard
+                            </MobileNavLink>
+                            <MobileNavLink to="/messages" icon={FiMessageSquare} badge={unreadChatCount} onClick={() => setOpen(false)}>
+                              Messages
+                            </MobileNavLink>
+                          </>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {/* Public Exploration Section */}
+                    <motion.div variants={menuItemVariants} className="space-y-1">
+                      <p className="px-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        Explore
+                      </p>
+                      <MobileNavLink to="/" end icon={FiHome} onClick={() => setOpen(false)}>
+                        Home
+                      </MobileNavLink>
+                      <MobileNavLink to="/search" icon={FiSearch} onClick={() => setOpen(false)}>
+                        Properties
+                      </MobileNavLink>
+                      <MobileNavLink to="/features" icon={BiBuildingHouse} onClick={() => setOpen(false)}>
+                        Features
+                      </MobileNavLink>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          openModal('about');
+                          setOpen(false);
+                        }}
+                        className="flex min-h-[44px] w-full items-center justify-between rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-slate-200 transition-all hover:bg-white/10 hover:text-white"
+                      >
+                        <span className="flex items-center gap-3">
+                          <FiInfo size={17} className="flex-shrink-0 text-[#D5A348]" />
+                          <span>About</span>
+                        </span>
+                        <FiChevronRight size={14} className="opacity-50" />
+                      </button>
+                      <MobileNavLink to="/help" icon={FiHelpCircle} onClick={() => setOpen(false)}>
+                        Help
+                      </MobileNavLink>
+                    </motion.div>
+                  </motion.div>
+
+                  {/* Bottom Actions */}
+                  <div className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-4">
+                    <div className="flex items-center justify-between px-1">
+                      <span className="text-xs text-slate-300">Theme</span>
+                      <DarkModeToggle className="navbar-theme-toggle" />
+                    </div>
+
+                    {user ? (
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleLogout}
+                        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-rose-500/40 px-3.5 py-2.5 text-sm font-semibold text-rose-400 transition hover:bg-rose-500/10"
+                      >
+                        <FiLogOut size={16} /> Logout
+                      </motion.button>
+                    ) : (
+                      <div className="space-y-2">
+                        <LiquidButton
+                          to="/login"
+                          variant="sapphire"
+                          size="nav"
+                          className="w-full text-center"
+                          onClick={() => setOpen(false)}
+                        >
+                          Login
+                        </LiquidButton>
+                        <LiquidButton
+                          to="/register"
+                          variant="gold"
+                          size="nav"
+                          className="w-full text-center"
+                          onClick={() => setOpen(false)}
+                        >
+                          Get Started
+                        </LiquidButton>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </>
   );
 }

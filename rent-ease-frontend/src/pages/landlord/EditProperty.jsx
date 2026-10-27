@@ -444,9 +444,11 @@ export default function EditProperty() {
       const canonical = buildCanonicalLayout(formattedRooms, floorPlan, {
         unit: 'ft',
         wallThickness: Number(wallThickness) || 0.15,
-        wallHeight: 1.85,
-        totalFloors: Number(form.totalFloors) || 1,
+        wallHeight: isLand ? 0.40 : 1.85,
+        totalFloors: isLand ? 1 : (Number(form.totalFloors) || 1),
         propertyId: id,
+        isLand: isLand,
+        propertyType: form.propertyType,
       });
 
       const updatedFloorPlan = floorPlan ? {
@@ -458,13 +460,16 @@ export default function EditProperty() {
       const threeDConfig = {
         enabled: true,
         unit: 'ft',
+        isLand: isLand,
+        propertyType: form.propertyType,
+        type: isLand ? 'land' : form.propertyType,
         furnishing: form.furnished,
         wallThickness: Number(wallThickness) || 0.15,
         floorPlan: updatedFloorPlan,
         canonicalLayout: canonical,
         floors: [{
           floorNumber: 0,
-          rooms: formattedRooms,
+          rooms: canonical?.rooms && canonical.rooms.length > 0 ? canonical.rooms : formattedRooms,
         }],
       };
 

@@ -55,6 +55,44 @@ const makeRoom = (index = 0) => ({
   length: '', width: '', height: '', count: 1, description: '', photos: [],
 });
 
+const generateDefaultHouseRooms = (numBedrooms = 2, numBathrooms = 1) => {
+  const beds = Math.max(1, Number(numBedrooms) || 1);
+  const baths = Math.max(1, Number(numBathrooms) || 1);
+  const generated = [
+    { id: `room-${Date.now()}-living`, name: 'Living Room', type: 'living', length: 18, width: 14, height: 10, count: 1, description: '', photos: [] },
+    { id: `room-${Date.now()}-kitchen`, name: 'Kitchen', type: 'kitchen', length: 12, width: 10, height: 10, count: 1, description: '', photos: [] },
+  ];
+  if (beds > 0) {
+    generated.push({ id: `room-${Date.now()}-bed-1`, name: beds > 1 ? 'Master Bedroom' : 'Bedroom', type: 'bedroom', length: 14, width: 12, height: 10, count: 1, description: '', photos: [] });
+    for (let i = 2; i <= beds; i++) {
+      generated.push({ id: `room-${Date.now()}-bed-${i}`, name: `Bedroom ${i}`, type: 'bedroom', length: 12, width: 10, height: 10, count: 1, description: '', photos: [] });
+    }
+  }
+  for (let b = 1; b <= baths; b++) {
+    generated.push({ id: `room-${Date.now()}-bath-${b}`, name: baths > 1 ? `Bathroom ${b}` : 'Bathroom', type: 'bathroom', length: 8, width: 6, height: 9, count: 1, description: '', photos: [] });
+  }
+  return generated;
+};
+
+const generateDefaultPlotEntity = (areaSqFt = 1200, customLength = '', customWidth = '') => {
+  const sqft = Number(areaSqFt) || 1200;
+  let w = Number(customWidth) || Math.round(Math.sqrt(sqft / 1.33));
+  let l = Number(customLength) || Math.round(sqft / Math.max(1, w));
+  return [{
+    id: `plot-boundary-${Date.now()}`,
+    name: 'Plot Area',
+    type: 'land',
+    length: customLength || l,
+    width: customWidth || w,
+    height: 0,
+    area: sqft,
+    count: 1,
+    description: '',
+    photos: [],
+    unit: 'ft',
+  }];
+};
+
 const initialForm = {
   listingType: '', propertyType: '', title: '', description: '', address: '', city: '', area: '', state: '', pincode: '', size: '',
   bedrooms: '', bathrooms: '', floorNumber: '', totalFloors: '', furnished: '', balcony: '', parking: '', garden: '', amenities: [],
@@ -138,6 +176,36 @@ function RoomEditor({ room, index, onChange, onRemove, canRemove }) {
   );
 }
 
+function PlotBoundaryEditor({ room, onChange, landDetails = {} }) {
+  const change = (event) => onChange({ ...room, [event.target.name]: event.target.value });
+  const l = Number(room?.length) || 0;
+  const w = Number(room?.width) || 0;
+  const calcArea = l * w;
+
+  return (
+    <div className="card space-y-4 border border-black/5 p-5 dark:border-white/5">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-display font-semibold">Plot Boundary Dimensions</h3>
+        <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+          Land / Plot Terrain
+        </span>
+      </div>
+      <p className="text-xs text-ink/60 dark:text-slate-400">
+        Specify boundary length and frontage width (in feet) to render the 3D terrain and property boundary markings.
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Plot Length (ft)" name="length" value={room.length} onChange={change} type="number" min="1" step="0.5" required placeholder="e.g. 40" />
+        <Field label="Plot Width / Frontage (ft)" name="width" value={room.width} onChange={change} type="number" min="1" step="0.5" required placeholder="e.g. 30" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3 text-xs text-ink/70 dark:text-slate-300 bg-black/5 dark:bg-white/5 p-3 rounded-xl">
+        <div><span className="font-semibold">Facing:</span> {landDetails.facing || 'East'}</div>
+        <div><span className="font-semibold">Road Access:</span> {landDetails.roadAccess || 'Direct'}</div>
+        <div><span className="font-semibold">Boundary Area:</span> {calcArea > 0 ? `${calcArea} sq. ft.` : 'Auto-calculated'}</div>
+      </div>
+    </div>
+  );
+}
+
 function ReviewRow({ label, value }) {
   if (value === '' || value === undefined || value === null || (Array.isArray(value) && !value.length)) return null;
   return <div className="flex flex-wrap justify-between gap-3 border-b border-black/5 py-2 text-sm last:border-0 dark:border-white/5"><span className="text-ink/60 dark:text-slate-400">{label}</span><span className="text-right font-medium">{Array.isArray(value) ? value.join(', ') : String(value)}</span></div>;
@@ -196,6 +264,49 @@ export default function AddProperty() {
       size: val,
       ...(isPlotOrLandType(current.propertyType) && !current.landArea ? { landArea: val } : {}),
     }));
+  };
+
+  const handlePropertyTypeSelect = (value) => {
+    const isNowLand = isPlotOrLandType(value);
+    setForm((current) => {
+      let updatedRooms = current.rooms;
+      if (isNowLand) {
+        updatedRooms = generateDefaultPlotEntity(current.landArea || current.size || 1200);
+      } else if (!current.rooms || current.rooms.length <= 1 || current.rooms[0]?.type === 'land') {
+        updatedRooms = generateDefaultHouseRooms(current.bedrooms || 2, current.bathrooms || 1);
+      }
+      return {
+        ...current,
+        propertyType: value,
+        rooms: updatedRooms,
+      };
+    });
+  };
+
+  const handleBedroomsChange = (e) => {
+    const val = e.target.value;
+    setForm((current) => {
+      const isHomeType = current.propertyType === 'House' || current.propertyType === 'Flat';
+      const roomsCustomized = current.rooms && current.rooms.length > 1 && current.rooms.some((r) => Number(r.length) > 0);
+      let nextRooms = current.rooms;
+      if (isHomeType && !roomsCustomized) {
+        nextRooms = generateDefaultHouseRooms(val, current.bathrooms || 1);
+      }
+      return { ...current, bedrooms: val, rooms: nextRooms };
+    });
+  };
+
+  const handleBathroomsChange = (e) => {
+    const val = e.target.value;
+    setForm((current) => {
+      const isHomeType = current.propertyType === 'House' || current.propertyType === 'Flat';
+      const roomsCustomized = current.rooms && current.rooms.length > 1 && current.rooms.some((r) => Number(r.length) > 0);
+      let nextRooms = current.rooms;
+      if (isHomeType && !roomsCustomized) {
+        nextRooms = generateDefaultHouseRooms(current.bedrooms || 2, val);
+      }
+      return { ...current, bathrooms: val, rooms: nextRooms };
+    });
   };
 
   const validateStep = (currentStep) => {
@@ -269,21 +380,73 @@ export default function AddProperty() {
   };
 
   const createThreeDConfig = () => {
-    const defaultLen = isLand ? (Number(form.size) ? Math.round(Math.sqrt(Number(form.size) * 1.33)) : 30) : 12;
-    const defaultWid = isLand ? (Number(form.size) ? Math.round(Number(form.size) / Math.max(1, defaultLen)) : 40) : 10;
+    if (isLand) {
+      const plotAreaSqFt = Number(form.landArea) || Number(form.size) || 1200;
+      let plotL = Number(form.rooms?.[0]?.length) || 0;
+      let plotW = Number(form.rooms?.[0]?.width) || 0;
+      if (!plotL || !plotW) {
+        plotW = Math.round(Math.sqrt(plotAreaSqFt / 1.33));
+        plotL = Math.round(plotAreaSqFt / Math.max(1, plotW));
+      }
+      const plotRoom = {
+        id: 'plot-boundary-0',
+        name: 'Plot Area',
+        type: 'land',
+        length: plotL,
+        width: plotW,
+        height: 0,
+        area: plotL * plotW,
+        count: 1,
+        description: '',
+        photos: [],
+        unit: 'ft',
+        floorNumber: 0,
+      };
 
-    const formattedRooms = (form.rooms || []).map((room, roomIdx) => {
+      const canonical = buildCanonicalLayout([plotRoom], form.floorPlan || null, {
+        unit: 'ft',
+        wallThickness: 0.12,
+        wallHeight: 0.40,
+        totalFloors: 1,
+        propertyType: 'Land',
+        isLand: true,
+      });
+
+      return {
+        enabled: form.use3D,
+        unit: 'ft',
+        isLand: true,
+        propertyType: 'Land',
+        type: 'land',
+        wallThickness: 0.12,
+        floorPlan: form.floorPlan ? { ...form.floorPlan, layout: canonical } : null,
+        canonicalLayout: canonical,
+        floors: [{
+          floorNumber: 0,
+          rooms: canonical.rooms && canonical.rooms.length > 0 ? canonical.rooms : [plotRoom],
+        }],
+      };
+    }
+
+    // Residential House / Flat
+    const sourceRooms = (form.rooms && form.rooms.length > 0)
+      ? form.rooms
+      : generateDefaultHouseRooms(form.bedrooms || 2, form.bathrooms || 1);
+
+    const formattedRooms = sourceRooms.map((room, roomIdx) => {
       const parsedLen = Number(room.length);
       const parsedWid = Number(room.width);
+      const defaultLen = room.type === 'living' ? 18 : room.type === 'bathroom' ? 8 : room.type === 'kitchen' ? 12 : 14;
+      const defaultWid = room.type === 'living' ? 14 : room.type === 'bathroom' ? 6 : room.type === 'kitchen' ? 10 : 12;
       const len = parsedLen > 0 ? parsedLen : defaultLen;
       const wid = parsedWid > 0 ? parsedWid : defaultWid;
       return {
         id: room.id || `room-${roomIdx}`,
-        name: (room.name || (isLand ? 'Plot Area' : `Room ${roomIdx + 1}`)).trim(),
-        type: room.type || classifyRoomType(room.name || (isLand ? 'other' : '')),
+        name: (room.name || `Room ${roomIdx + 1}`).trim(),
+        type: room.type || classifyRoomType(room.name || 'other'),
         length: len,
         width: wid,
-        height: Number(room.height) || (isLand ? 0 : 10),
+        height: Number(room.height) || 10,
         count: Math.max(1, Number(room.count) || 1),
         description: room.description || '',
         photos: sanitizeMediaUrls(room.photos),
@@ -294,14 +457,16 @@ export default function AddProperty() {
 
     const canonical = buildCanonicalLayout(formattedRooms, form.floorPlan || null, {
       unit: 'ft',
-      wallThickness: isLand ? 0.12 : 0.16,
-      wallHeight: isLand ? 0.40 : 1.85,
+      wallThickness: 0.16,
+      wallHeight: 1.85,
       totalFloors: Math.max(1, Number(form.totalFloors) || 1),
-      propertyType: form.propertyType,
-      isLand,
+      propertyType: form.propertyType || 'House',
+      isLand: false,
     });
 
     const sanitizedRooms = (canonical.rooms && canonical.rooms.length > 0 ? canonical.rooms : formattedRooms).map((r, idx) => {
+      const defaultLen = r.type === 'living' ? 18 : r.type === 'bathroom' ? 8 : r.type === 'kitchen' ? 12 : 14;
+      const defaultWid = r.type === 'living' ? 14 : r.type === 'bathroom' ? 6 : r.type === 'kitchen' ? 10 : 12;
       const len = Number(r.length || r.lFt) || defaultLen;
       const wid = Number(r.width || r.wFt) || defaultWid;
       return {
@@ -310,7 +475,7 @@ export default function AddProperty() {
         type: r.type || 'other',
         length: len,
         width: wid,
-        height: Number(r.height || r.hFt) || 0,
+        height: Number(r.height || r.hFt) || 10,
         area: Number(r.area) || (len * wid),
         count: Math.max(1, Number(r.count) || 1),
         description: r.description || '',
@@ -337,6 +502,8 @@ export default function AddProperty() {
     return {
       enabled: form.use3D,
       unit: 'ft',
+      isLand: false,
+      propertyType: form.propertyType || 'House',
       furnishing: form.furnished,
       wallThickness: 0.16,
       floorPlan: form.floorPlan ? { ...form.floorPlan, layout: canonical } : null,
@@ -579,7 +746,7 @@ export default function AddProperty() {
             exit="exit"
           >
         {step === 0 && <div className="grid gap-4 md:grid-cols-3">{LISTING_TYPES.map((choice) => <ChoiceCard key={choice.value} choice={choice} selected={form.listingType === choice.value} onSelect={(value) => setValue('listingType', value)} />)}</div>}
-        {step === 1 && <div className="grid gap-4 md:grid-cols-3">{PROPERTY_TYPES.map((choice) => <ChoiceCard key={choice.value} choice={choice} selected={form.propertyType === choice.value} onSelect={(value) => setValue('propertyType', value)} />)}</div>}
+        {step === 1 && <div className="grid gap-4 md:grid-cols-3">{PROPERTY_TYPES.map((choice) => <ChoiceCard key={choice.value} choice={choice} selected={form.propertyType === choice.value} onSelect={handlePropertyTypeSelect} />)}</div>}
 
         {step === 2 && <div className="space-y-7">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -603,7 +770,7 @@ export default function AddProperty() {
           </div>
           <Field label="Description" name="description" value={form.description} onChange={(e) => setValue('description', e.target.value)} required placeholder="Describe the property, its condition, and highlights." />
           <div className="grid gap-4 sm:grid-cols-2"><Field label="Location / Address" name="address" value={form.address} onChange={(e) => setValue('address', e.target.value)} required /><Field label="City" name="city" value={form.city} onChange={(e) => setValue('city', e.target.value)} required /><Field label="Area / Locality" name="area" value={form.area} onChange={(e) => setValue('area', e.target.value)} required /><Field label="State" name="state" value={form.state} onChange={(e) => setValue('state', e.target.value)} required /><Field label="Pincode" name="pincode" value={form.pincode} onChange={(e) => setValue('pincode', e.target.value)} required /></div>
-          {isHome && <div className="space-y-4"><h3 className="font-display font-semibold">Home details</h3><div className="grid gap-4 sm:grid-cols-3"><Field label="Bedrooms" name="bedrooms" value={form.bedrooms} onChange={(e) => setValue('bedrooms', e.target.value)} type="number" min="0" required /><Field label="Bathrooms" name="bathrooms" value={form.bathrooms} onChange={(e) => setValue('bathrooms', e.target.value)} type="number" min="0" required />{form.propertyType === 'Flat' ? <><Field label="Floor number" name="floorNumber" value={form.floorNumber} onChange={(e) => setValue('floorNumber', e.target.value)} type="number" min="0" /><Field label="Total floors" name="totalFloors" value={form.totalFloors} onChange={(e) => setValue('totalFloors', e.target.value)} type="number" min="0" /></> : <Field label="Number of floors" name="totalFloors" value={form.totalFloors} onChange={(e) => setValue('totalFloors', e.target.value)} type="number" min="0" />}</div><div className="grid gap-4 sm:grid-cols-3"><Field label="Furnished status" name="furnished" value={form.furnished} onChange={(e) => setValue('furnished', e.target.value)}><select name="furnished" value={form.furnished} onChange={(e) => setValue('furnished', e.target.value)} className="input"><option value="">Choose status</option>{FURNISHED_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select></Field><Field label="Parking availability" name="parking" value={form.parking} onChange={(e) => setValue('parking', e.target.value)}><select name="parking" value={form.parking} onChange={(e) => setValue('parking', e.target.value)} className="input"><option value="">Choose</option><option>Yes</option><option>No</option></select></Field><Field label={form.propertyType === 'Flat' ? 'Balcony availability' : 'Garden availability'} name={form.propertyType === 'Flat' ? 'balcony' : 'garden'} value={form[form.propertyType === 'Flat' ? 'balcony' : 'garden']} onChange={(e) => setValue(form.propertyType === 'Flat' ? 'balcony' : 'garden', e.target.value)}><select name={form.propertyType === 'Flat' ? 'balcony' : 'garden'} value={form[form.propertyType === 'Flat' ? 'balcony' : 'garden']} onChange={(e) => setValue(form.propertyType === 'Flat' ? 'balcony' : 'garden', e.target.value)} className="input"><option value="">Choose</option><option>Yes</option><option>No</option></select></Field></div></div>}
+          {isHome && <div className="space-y-4"><h3 className="font-display font-semibold">Home details</h3><div className="grid gap-4 sm:grid-cols-3"><Field label="Bedrooms" name="bedrooms" value={form.bedrooms} onChange={handleBedroomsChange} type="number" min="0" required /><Field label="Bathrooms" name="bathrooms" value={form.bathrooms} onChange={handleBathroomsChange} type="number" min="0" required />{form.propertyType === 'Flat' ? <><Field label="Floor number" name="floorNumber" value={form.floorNumber} onChange={(e) => setValue('floorNumber', e.target.value)} type="number" min="0" /><Field label="Total floors" name="totalFloors" value={form.totalFloors} onChange={(e) => setValue('totalFloors', e.target.value)} type="number" min="0" /></> : <Field label="Number of floors" name="totalFloors" value={form.totalFloors} onChange={(e) => setValue('totalFloors', e.target.value)} type="number" min="0" />}</div><div className="grid gap-4 sm:grid-cols-3"><Field label="Furnished status" name="furnished" value={form.furnished} onChange={(e) => setValue('furnished', e.target.value)}><select name="furnished" value={form.furnished} onChange={(e) => setValue('furnished', e.target.value)} className="input"><option value="">Choose status</option>{FURNISHED_OPTIONS.map((option) => <option key={option}>{option}</option>)}</select></Field><Field label="Parking availability" name="parking" value={form.parking} onChange={(e) => setValue('parking', e.target.value)}><select name="parking" value={form.parking} onChange={(e) => setValue('parking', e.target.value)} className="input"><option value="">Choose</option><option>Yes</option><option>No</option></select></Field><Field label={form.propertyType === 'Flat' ? 'Balcony availability' : 'Garden availability'} name={form.propertyType === 'Flat' ? 'balcony' : 'garden'} value={form[form.propertyType === 'Flat' ? 'balcony' : 'garden']} onChange={(e) => setValue(form.propertyType === 'Flat' ? 'balcony' : 'garden', e.target.value)}><select name={form.propertyType === 'Flat' ? 'balcony' : 'garden'} value={form[form.propertyType === 'Flat' ? 'balcony' : 'garden']} onChange={(e) => setValue(form.propertyType === 'Flat' ? 'balcony' : 'garden', e.target.value)} className="input"><option value="">Choose</option><option>Yes</option><option>No</option></select></Field></div></div>}
           {isLand && <div className="space-y-4"><h3 className="font-display font-semibold">Land details</h3><div className="grid gap-4 sm:grid-cols-3"><Field label="Land area" name="landArea" value={form.landArea} onChange={(e) => setValue('landArea', e.target.value)} type="number" min="1" required /><Field label="Land unit" name="landUnit" value={form.landUnit} onChange={(e) => setValue('landUnit', e.target.value)}><select name="landUnit" value={form.landUnit} onChange={(e) => setValue('landUnit', e.target.value)} className="input"><option>sq. ft.</option><option>sq. yards</option><option>acres</option><option>sq. meters</option></select></Field><Field label="Land type / usage" name="landUsage" value={form.landUsage} onChange={(e) => setValue('landUsage', e.target.value)} placeholder="e.g. Residential, Commercial" required /></div><div className="grid gap-4 sm:grid-cols-3"><Field label="Dimensions (e.g. 30 × 40 ft)" name="dimensions" value={form.dimensions || ''} onChange={(e) => { const val = e.target.value; const match = val.match(/(\d+(?:\.\d+)?)\s*(?:[xX×*]|by)\s*(\d+(?:\.\d+)?)/); if (match) { setForm((curr) => ({ ...curr, dimensions: val, rooms: (curr.rooms || []).map((rm, idx) => idx === 0 ? { ...rm, name: rm.name && rm.name !== 'Living room' ? rm.name : 'Plot Boundary', length: match[1], width: match[2] } : rm) })); } else { setValue('dimensions', val); } }} placeholder="e.g. 30 × 40 ft" /><Field label="Road access" name="roadAccess" value={form.roadAccess} onChange={(e) => setValue('roadAccess', e.target.value)} placeholder="e.g. 30 ft road" /><Field label="Facing direction" name="facing" value={form.facing} onChange={(e) => setValue('facing', e.target.value)} placeholder="e.g. East" /></div><div className="grid gap-4 sm:grid-cols-2"><Field label="Boundary details" name="boundary" value={form.boundary} onChange={(e) => setValue('boundary', e.target.value)} placeholder="e.g. Fenced, Compound wall" /></div><div className="flex flex-wrap gap-5 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={form.water} onChange={(e) => setValue('water', e.target.checked)} /> Water available</label><label className="flex items-center gap-2"><input type="checkbox" checked={form.electricity} onChange={(e) => setValue('electricity', e.target.checked)} /> Electricity available</label></div></div>}
           {isHome && <div><label className="label">Amenities</label><div className="flex flex-wrap gap-2">{AMENITIES_LIST.map((amenity) => <button type="button" key={amenity} onClick={() => setValue('amenities', form.amenities.includes(amenity) ? form.amenities.filter((item) => item !== amenity) : [...form.amenities, amenity])} className={`rounded-full border px-4 py-1.5 text-sm font-medium transition ${form.amenities.includes(amenity) ? 'border-primary bg-primary text-white' : 'border-black/10 text-ink/60 hover:border-primary hover:text-primary dark:border-white/10 dark:text-slate-400'}`}>{amenity}</button>)}</div></div>}
           <div className="grid gap-6 md:grid-cols-2">
@@ -615,14 +782,34 @@ export default function AddProperty() {
         {step === 3 && <div className="space-y-6">{(form.listingType === 'Rent' || form.listingType === 'Both') && <div className="space-y-4"><h3 className="font-display text-lg font-semibold">Rent details</h3><div className="grid gap-4 sm:grid-cols-2"><Field label="Monthly rent" name="monthlyRent" value={form.monthlyRent} onChange={(e) => setValue('monthlyRent', e.target.value)} type="number" min="1" required /><Field label="Security deposit" name="securityDeposit" value={form.securityDeposit} onChange={(e) => setValue('securityDeposit', e.target.value)} type="number" min="0" /><Field label="Maintenance charges" name="maintenanceCharges" value={form.maintenanceCharges} onChange={(e) => setValue('maintenanceCharges', e.target.value)} type="number" min="0" /><Field label="Available from" name="availableFrom" value={form.availableFrom} onChange={(e) => setValue('availableFrom', e.target.value)} type="date" required /><Field label="Lease duration" name="leaseDuration" value={form.leaseDuration} onChange={(e) => setValue('leaseDuration', e.target.value)} placeholder="e.g. 11 months" /></div><div className="pt-2"><h4 className="font-display font-semibold text-base mb-3">Utilities & Charges</h4><div className="grid gap-4 sm:grid-cols-2"><Field label="Electricity Bill" name="electricityBill"><select name="electricityBill" value={form.electricityBill || 'Included in Rent'} onChange={(e) => setValue('electricityBill', e.target.value)} className="input"><option value="Included in Rent">Included in Rent</option><option value="Paid Separately">Paid Separately</option><option value="Fixed Monthly Amount">Fixed Monthly Amount</option></select></Field>{form.electricityBill === 'Fixed Monthly Amount' && <Field label="Monthly Electricity Charge (₹)" name="monthlyElectricityCharge" value={form.monthlyElectricityCharge} onChange={(e) => { const val = e.target.value; if (val === '') setValue('monthlyElectricityCharge', ''); else { const num = parseFloat(val); if (!isNaN(num) && num >= 0) setValue('monthlyElectricityCharge', val); } }} type="number" min="0" step="0.01" placeholder="0.00" required />}<Field label="Water Charges" name="waterCharges"><select name="waterCharges" value={form.waterCharges || 'Included in Rent'} onChange={(e) => setValue('waterCharges', e.target.value)} className="input"><option value="Included in Rent">Included in Rent</option><option value="Paid Separately">Paid Separately</option><option value="Fixed Monthly Amount">Fixed Monthly Amount</option></select></Field>{form.waterCharges === 'Fixed Monthly Amount' && <Field label="Monthly Water Charge (₹)" name="monthlyWaterCharge" value={form.monthlyWaterCharge} onChange={(e) => { const val = e.target.value; if (val === '') setValue('monthlyWaterCharge', ''); else { const num = parseFloat(val); if (!isNaN(num) && num >= 0) setValue('monthlyWaterCharge', val); } }} type="number" min="0" step="0.01" placeholder="0.00" required />}</div></div></div>}{(form.listingType === 'Sale' || form.listingType === 'Both') && <div className="space-y-4"><h3 className="font-display text-lg font-semibold">Sale details</h3><div className="grid gap-4 sm:grid-cols-2"><Field label="Total sale price" name="salePrice" value={form.salePrice} onChange={(e) => setValue('salePrice', e.target.value)} type="number" min="1" required /><Field label="Price per sq. ft. (optional)" name="pricePerSqft" value={form.pricePerSqft} onChange={(e) => setValue('pricePerSqft', e.target.value)} type="number" min="0" /><Field label="Negotiable" name="negotiable" value={form.negotiable} onChange={(e) => setValue('negotiable', e.target.value)}><select name="negotiable" value={form.negotiable} onChange={(e) => setValue('negotiable', e.target.value)} className="input"><option>Yes</option><option>No</option></select></Field></div></div>}</div>}
 
         {step === 4 && <div className="space-y-5">
-          <div><h3 className="font-display text-lg font-semibold">{isLand ? 'Plot / Boundary Dimensions' : 'Room Details'}</h3><p className="mt-1 text-sm text-ink/60 dark:text-slate-400">{isLand ? 'Add boundary dimensions for the plot to power 3D visualization.' : 'Add dimensions now so the rooms can power the 3D property visualization later.'}</p></div>
-          {form.rooms.map((room, index) => <RoomEditor key={room.id} room={room} index={index} canRemove={form.rooms.length > 1} onChange={(nextRoom) => updateRoom(index, nextRoom)} onRemove={() => setValue('rooms', form.rooms.filter((_, roomIndex) => roomIndex !== index))} />)}
-          {!isLand && <button type="button" onClick={() => setValue('rooms', [...form.rooms, makeRoom(form.rooms.length)])} className="btn-outline"><FiPlus /> Add Another Room</button>}
+          <div><h3 className="font-display text-lg font-semibold">{isLand ? 'Plot / Boundary Dimensions' : 'Room Details'}</h3><p className="mt-1 text-sm text-ink/60 dark:text-slate-400">{isLand ? 'Define the plot boundaries to generate the realistic 3D terrain and property boundary view.' : 'Add dimensions now so the rooms can power the 3D property visualization later.'}</p></div>
+          {isLand ? (
+            <PlotBoundaryEditor
+              room={form.rooms[0] || { id: 'plot-0', name: 'Plot Area', type: 'land', length: 40, width: 30 }}
+              landDetails={{ facing: form.facing, roadAccess: form.roadAccess }}
+              onChange={(updatedPlot) => {
+                setValue('rooms', [{
+                  ...updatedPlot,
+                  name: 'Plot Area',
+                  type: 'land',
+                  area: (Number(updatedPlot.length) || 0) * (Number(updatedPlot.width) || 0),
+                }]);
+                if (updatedPlot.length && updatedPlot.width) {
+                  setValue('dimensions', `${updatedPlot.length} × ${updatedPlot.width} ft`);
+                }
+              }}
+            />
+          ) : (
+            <>
+              {form.rooms.map((room, index) => <RoomEditor key={room.id} room={room} index={index} canRemove={form.rooms.length > 1} onChange={(nextRoom) => updateRoom(index, nextRoom)} onRemove={() => setValue('rooms', form.rooms.filter((_, roomIndex) => roomIndex !== index))} />)}
+              <button type="button" onClick={() => setValue('rooms', [...form.rooms, makeRoom(form.rooms.length)])} className="btn-outline"><FiPlus /> Add Another Room</button>
+            </>
+          )}
           <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={form.use3D} onChange={(e) => setValue('use3D', e.target.checked)} /> Use these dimensions for 3D property visualization</label>
           {form.use3D && form.rooms.some((r) => Number(r.length) > 0 && Number(r.width) > 0) && (
             <div className="mt-4 rounded-2xl border border-black/10 p-4 dark:border-white/10">
               <div className="mb-2 flex items-center justify-between">
-                <h4 className="font-display text-base font-semibold">Interactive 3D House Preview</h4>
+                <h4 className="font-display text-base font-semibold">{isLand ? 'Interactive 3D Plot Preview' : 'Interactive 3D House Preview'}</h4>
                 <span className="text-xs text-ink/50 dark:text-slate-400">Live preview generated from your dimensions</span>
               </div>
               <div className="card h-96 overflow-hidden p-2">
@@ -636,6 +823,7 @@ export default function AddProperty() {
                   listingType={form.listingType}
                   transactionType={form.listingType}
                   isLand={isLand}
+                  sqft={Number(form.landArea) || Number(form.size) || 1200}
                 />
               </div>
             </div>
@@ -819,18 +1007,18 @@ export default function AddProperty() {
                   </div>
                 </div>
 
-                {/* Live 3D House Preview with Floor Plan Orientation */}
+                {/* Live 3D House / Plot Preview */}
                 {form.use3D && form.rooms.some((r) => Number(r.length) > 0 && Number(r.width) > 0) && (
                   <div className="rounded-2xl border border-black/10 p-5 dark:border-white/10">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <h4 className="font-display text-base font-bold">Dynamic 3D House Preview</h4>
+                        <h4 className="font-display text-base font-bold">{isLand ? 'Dynamic 3D Plot Preview' : 'Dynamic 3D House Preview'}</h4>
                         <p className="text-xs text-ink/50 dark:text-slate-400">
-                          Rooms arranged dynamically adhering to your 2D floor plan reference
+                          {isLand ? 'Plot boundary and terrain visualization' : 'Rooms arranged dynamically adhering to your 2D floor plan reference'}
                         </p>
                       </div>
                       <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                        Aligned with 2D Floor Plan
+                        {form.floorPlan ? 'Aligned with 2D Floor Plan' : '3D Spatial Preview'}
                       </span>
                     </div>
                     <div className="card h-96 overflow-hidden p-2">
@@ -843,6 +1031,7 @@ export default function AddProperty() {
                         listingType={form.listingType}
                         transactionType={form.listingType}
                         isLand={isLand}
+                        sqft={Number(form.landArea) || Number(form.size) || 1200}
                       />
                     </div>
                   </div>
@@ -900,12 +1089,22 @@ export default function AddProperty() {
             <div className="grid gap-6 md:grid-cols-2">
               <div className="card p-5">
                 <div className="mb-3 flex items-center justify-between">
-                  <h3 className="font-display font-semibold">Rooms ({form.rooms.length})</h3>
+                  <h3 className="font-display font-semibold">{isLand ? 'Plot Boundary' : `Rooms (${form.rooms.length})`}</h3>
                   <button type="button" onClick={() => setStep(4)} className="text-sm font-semibold text-primary">Edit</button>
                 </div>
-                {form.rooms.map((room) => (
-                  <ReviewRow key={room.id} label={room.name} value={`${room.length} × ${room.width}${room.height ? ` × ${room.height}` : ''} ft`} />
-                ))}
+                {isLand ? (
+                  <>
+                    <ReviewRow label="Boundary Length" value={`${form.rooms[0]?.length || 0} ft`} />
+                    <ReviewRow label="Boundary Width" value={`${form.rooms[0]?.width || 0} ft`} />
+                    <ReviewRow label="Calculated Boundary Area" value={`${(Number(form.rooms[0]?.length) || 0) * (Number(form.rooms[0]?.width) || 0)} sq. ft.`} />
+                    <ReviewRow label="Plot Facing" value={form.facing || 'East'} />
+                    <ReviewRow label="Road Access" value={form.roadAccess || 'Direct'} />
+                  </>
+                ) : (
+                  form.rooms.map((room) => (
+                    <ReviewRow key={room.id} label={room.name} value={`${room.length} × ${room.width}${room.height ? ` × ${room.height}` : ''} ft`} />
+                  ))
+                )}
               </div>
               <div className="card p-5">
                 <div className="mb-3 flex items-center justify-between">
